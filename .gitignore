@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+.npm
+package-lock.json
+yarn-error.log
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+bin/
+obj/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# IDE / Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary migrations or scripts
+tmp_migrate.ts
+.system_generated/
+.tempmediaStorage/
+browser/
+*.webp
+*.png

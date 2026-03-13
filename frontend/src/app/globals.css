@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', sans-serif;
+
+  /* Petroleum Palette (Teal-ish / Actually Petroleum) */
+  --color-petroleum-50: #f0f9fa;
+  --color-petroleum-100: #d1edf1;
+  --color-petroleum-200: #a3dbe4;
+  --color-petroleum-300: #69bccd;
+  --color-petroleum-400: #3a97a8;
+  --color-petroleum-500: #217a8c;
+  --color-petroleum-600: #1a6272;
+  --color-petroleum-700: #154f5c;
+  --color-petroleum-800: #11404a;
+  --color-petroleum-900: #0e343d;
+  --color-petroleum-950: #092228;
+
+  /* UI Tokens */
+  --radius-xl: 0.75rem;
+  --radius-lg: 0.5rem;
+}
+
+:root {
+  --background: #f8fafc; /* slate-50 */
+  --surface: #ffffff;
+  --foreground: #0f172a; /* slate-900 */
+  --foreground-muted: #64748b; /* slate-500 */
+  --border: #e2e8f0; /* slate-200 */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #092228; /* petroleum-950 */
+    --surface: #0e343d; /* petroleum-900 */
+    --foreground: #f0f9fa; /* petroleum-50 */
+    --foreground-muted: #69bccd; /* petroleum-300 */
+    --border: #154f5c; /* petroleum-700 */
+  }
+}
+
+* {
+  @apply border-[var(--border)];
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+}
+
+.glass {
+  @apply bg-white/10 backdrop-blur-md border border-white/20;
+}
