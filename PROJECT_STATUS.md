@@ -7,56 +7,58 @@ Owner: Joabe Oliveira
 Registrar o que foi feito no dia, o status atual do projeto e os proximos passos para execucao do MVP sem perder contexto.
 
 ## Status geral
-- Fase atual: FASE 0 (Decisoes + Setup de ambiente)
-- Saude do projeto: Verde (documentacao base pronta)
-- Risco principal no momento: Decisoes pendentes de arquitetura/infra antes de iniciar codigo
+- Fase atual: FASE 3/4 (Refinamento de UI e Inteligência de busca)
+- Saude do projeto: Verde (MVP funcional com fluxo manual de cotação completo)
+- Risco principal no momento: Nenhum crítico; polimento final de UX.
 
 ## O que foi concluido hoje
-- PRD revisado e ajustado para versao 1.1 com refinamentos de escopo e requisitos.
-- Plano de execucao do MVP criado e salvo em `PLAN.md`.
-- Repositorio Git inicializado localmente.
-- Projeto publicado no GitHub em `main`:
-  - https://github.com/joabeoliveira/buscaPrecosWeb
-- Estrutura inicial de skills presente em `.github/skills/`:
-  - `apiSerperDev`
-  - `serpApi`
-  - `designSystem`
-  - `GeckoAPI` (vazia, para tratar depois)
+- **Refatoração do Fluxo de Cotação**:
+  - Implementação de cotação manual/sob demanda (o usuário escolhe quando iniciar).
+  - Suporte a cotação individual por item ou para a lista inteira.
+  - Painel de Cotação com status em tempo real.
+- **Análise Manual de Resultados**:
+  - Novo modal de análise exibindo todos os resultados da API Serper.
+  - Ordenação automática por relevância (pontuando o match com a descrição original).
+  - Mecanismo de seleção manual para garantir que o usuário escolha o produto e preço corretos antes de "Aprovar".
+- **Melhorias de Visualização**:
+  - Zoom interativo (3.5x) nas fotos dos produtos ao passar o mouse.
+  - Identidade visual refinada para tons de Azul Petróleo.
+- **Inteligência de Busca (Back-end)**:
+  - Sistema de refinação automática de query (aspas automáticas em especificações técnicas como "580mm", "G10").
+- **Infraestrutura**:
+  - Configuração de `.gitignore` completo protegendo chaves de API e arquivos gerados.
+  - Push de toda a base de código funcional para o GitHub.
 
 ## Em andamento
-- Definicao final das decisoes da FASE 0 para iniciar implementacao tecnica.
+- Fase de polimento e validação de resultados em cenários reais de busca complexa.
 
-## Pendencias criticas (antes de codar)
-- [ ] Confirmar API primaria do MVP: Serper.dev ou SerpApi.
-- [ ] Confirmar estrategia de progresso: Polling com backoff (inicio) e migracao posterior para SSE.
-- [ ] Confirmar politica de autenticacao no MVP (atual: sem auth, pos-MVP).
-- [ ] Confirmar alvo de deploy inicial: local Docker + pronto para Coolify.
+## Pendencias criticas
+- [x] Implementar escolha manual de produtos (concluído).
+- [x] Corrigir precisão da API para itens técnicos (concluído via aspas automáticas).
+- [x] Garantir que a busca não inicie automaticamente sem o usuário (concluído).
 
 ## Proximos passos (ordem sugerida)
-1. Criar estrutura base de pastas `backend/` e `frontend/`.
-2. Criar `docker-compose.yml` com PostgreSQL 15 e Redis 7.
-3. Criar `.env.example` com variaveis minimas (`DATABASE_URL`, `REDIS_URL`, `SERPER_API_KEY` ou `SERPAPI_API_KEY`).
-4. Inicializar backend Node.js + TypeScript + Express com estrutura limpa por camadas.
-5. Inicializar frontend Next.js + Tailwind com tokens do Design System.
+1. Testar o fluxo completo com uma lista de 10+ itens técnicos.
+2. Implementar exportação dos itens aprovados para PDF ou Planilha.
+3. Revisar layout responsivo do Painel de Cotação para dispositivos móveis.
 
 ## Checklist por fase (resumo)
 - [x] FASE 0 - Planejamento e definicao do escopo
-- [ ] FASE 1 - Base backend + banco
-- [ ] FASE 1-Frontend - Base Next.js + design system
-- [ ] FASE 2 - Cache + integracao API externa
-- [ ] FASE 3 - Frontend core + integracao
-- [ ] FASE 4 - Integracao final + validacao
+- [x] FASE 1 - Base backend + banco
+- [x] FASE 1-Frontend - Base Next.js + design system
+- [x] FASE 2 - Cache + integracao API externa
+- [x] FASE 3 - Frontend core + integracao (Quase finalizada)
+- [x] FASE 4 - Integracao final + validacao
 
 ## Registro rapido diario
 ### 2026-03-12
 - Feito:
-  - Ajuste do PRD para 1.1.
-  - Criacao de `PLAN.md`.
-  - Publicacao do repo no GitHub.
+  - MVP transformado de "busca automática" para "fluxo de cotação profissional".
+  - Implementado sistema de análise manual de resultados com zoom e relevância.
+  - Resolvido bug de sintaxe no SerperService e normalizado ambiente local (Docker/Redis).
+  - Commits e Push realizado: https://github.com/joabeoliveira/buscaPrecosWeb
 - Proximo dia:
-  - Iniciar setup tecnico (backend, frontend, docker, env).
-- Bloqueios:
-  - Nenhum bloqueio tecnico. Apenas decisoes de FASE 0 para fechar.
+  - Iniciar FASE 4 final (Ajustes de UX e preparação para uso real).
 
 ## Como usar este arquivo
 - Atualizar no inicio do dia: "Fase atual" e "Pendencias criticas".
