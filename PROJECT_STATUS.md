@@ -39,7 +39,7 @@ Registrar o que foi feito no dia, o status atual do projeto e os proximos passos
 
 ## Proximos passos (ordem sugerida)
 1. Testar o fluxo completo com uma lista de 10+ itens técnicos.
-2. Implementar exportação dos itens aprovados para PDF ou Planilha.
+2. ~~Implementar exportação dos itens aprovados para PDF ou Planilha.~~ ✅ Exportação CSV implementada.
 3. Revisar layout responsivo do Painel de Cotação para dispositivos móveis.
 
 ## Checklist por fase (resumo)

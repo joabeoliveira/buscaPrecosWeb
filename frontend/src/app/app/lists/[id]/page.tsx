@@ -6,7 +6,8 @@ import ProgressBar from '@/components/ui/ProgressBar';
 import ResultsTable from '@/components/results/ResultsTable';
 import Button from '@/components/ui/Button';
 import { shoppingApi, ListResult, SearchJobResponse } from '@/services/api';
-import { ArrowLeft, RefreshCw, CheckCircle2, AlertCircle, Clock, ShoppingBag, LayoutList, PlayCircle, Search } from 'lucide-react';
+import { ArrowLeft, RefreshCw, CheckCircle2, AlertCircle, Clock, ShoppingBag, LayoutList, PlayCircle, Search, Download } from 'lucide-react';
+import { generateCsv, downloadCsv } from '@/lib/exportUtils';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -114,6 +115,11 @@ export default function ListResultsPage() {
   
   const hasStartedAnySearch = results.some(r => r.status !== 'pending') || !!job;
 
+  const handleExportCsv = () => {
+    const csv = generateCsv(approvedResults);
+    downloadCsv(csv, 'cotacao.csv');
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       {/* Header */}
@@ -142,6 +148,12 @@ export default function ListResultsPage() {
             <RefreshCw size={16} />
             Atualizar
           </Button>
+          {approvedResults.length > 0 && (
+            <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/30">
+              <Download size={16} />
+              Exportar CSV
+            </Button>
+          )}
           {!hasStartedAnySearch && results.length > 0 && (
             <Button size="sm" onClick={startBatchSearch} isLoading={isStartingSearch} className="bg-petroleum-600 hover:bg-petroleum-700 text-white">
                <PlayCircle size={18} className="mr-2" />
