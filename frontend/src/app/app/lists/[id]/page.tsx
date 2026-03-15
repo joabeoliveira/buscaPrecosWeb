@@ -5,8 +5,8 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import ProgressBar from '@/components/ui/ProgressBar';
 import ResultsTable from '@/components/results/ResultsTable';
 import Button from '@/components/ui/Button';
-import { shoppingApi, ListResult, SearchJobResponse } from '@/services/api';
-import { ArrowLeft, RefreshCw, CheckCircle2, AlertCircle, Clock, ShoppingBag, LayoutList, PlayCircle, Search } from 'lucide-react';
+import { shoppingApi, catmatApi, ListResult, SearchJobResponse, CatmatMatchResult } from '@/services/api';
+import { ArrowLeft, RefreshCw, CheckCircle2, AlertCircle, Clock, ShoppingBag, LayoutList, PlayCircle, Search, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +23,8 @@ export default function ListResultsPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'approved'>('all');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [catmatSuggestions, setCatmatSuggestions] = useState<Record<string, CatmatMatchResult>>({});
+  const [isSuggestingCatmat, setIsSuggestingCatmat] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
@@ -90,6 +92,25 @@ export default function ListResultsPage() {
     pollStatus(jobId);
   }
 
+  const suggestCatmat = async () => {
+    if (results.length === 0) return;
+    setIsSuggestingCatmat(true);
+    try {
+      const descriptions = results.map((r) => r.original_query);
+      const { results: matches } = await catmatApi.batchMatch(descriptions);
+      if (!mountedRef.current) return;
+      const map: Record<string, CatmatMatchResult> = {};
+      results.forEach((r, i) => {
+        if (matches[i]) map[r.id] = matches[i];
+      });
+      setCatmatSuggestions(map);
+    } catch (error) {
+      console.error('Erro ao sugerir CATMAT:', error);
+    } finally {
+      if (mountedRef.current) setIsSuggestingCatmat(false);
+    }
+  };
+
   useEffect(() => {
     if (!listId) return;
 
@@ -142,6 +163,18 @@ export default function ListResultsPage() {
             <RefreshCw size={16} />
             Atualizar
           </Button>
+          {results.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={suggestCatmat}
+              isLoading={isSuggestingCatmat}
+              className="gap-2 border-petroleum-200 text-petroleum-700 hover:bg-petroleum-50 dark:border-petroleum-700 dark:text-petroleum-400"
+            >
+              <Tag size={16} />
+              Sugerir CATMAT
+            </Button>
+          )}
           {!hasStartedAnySearch && results.length > 0 && (
             <Button size="sm" onClick={startBatchSearch} isLoading={isStartingSearch} className="bg-petroleum-600 hover:bg-petroleum-700 text-white">
                <PlayCircle size={18} className="mr-2" />
@@ -217,7 +250,7 @@ export default function ListResultsPage() {
            <p className="text-slate-500">Preparando painel...</p>
         </div>
       ) : displayResults.length > 0 ? (
-        <ResultsTable results={displayResults} onAction={fetchResults} onIndividualSearch={handleIndividualSearchStarted} />
+        <ResultsTable results={displayResults} catmatSuggestions={catmatSuggestions} onAction={fetchResults} onIndividualSearch={handleIndividualSearchStarted} />
       ) : (
         <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white dark:border-petroleum-800 dark:bg-petroleum-900/40">
            {activeTab === 'approved' ? (

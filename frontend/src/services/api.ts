@@ -52,6 +52,24 @@ export interface ProductResult {
   description: string | null;
 }
 
+// ─── CATMAT types ─────────────────────────────────────────────────────────────
+
+export interface CatmatItem {
+  codigo: string;
+  descricao: string;
+  unidade?: string | null;
+}
+
+export interface CatmatMatchResult {
+  input: string;
+  bestMatch: CatmatItem | null;
+  candidates: CatmatItem[];
+  confidence: 'high' | 'medium' | 'low';
+  justification?: string;
+}
+
+// ─── API clients ──────────────────────────────────────────────────────────────
+
 export const shoppingApi = {
   createList: async (name: string, items: string[]): Promise<CreateListResponse> => {
     const response = await api.post('/lists', { name, items });
@@ -84,6 +102,20 @@ export const shoppingApi = {
 
   selectProduct: async (itemId: string, product: ProductResult): Promise<void> => {
     await api.post(`/items/${itemId}/select`, product);
+  },
+};
+
+export const catmatApi = {
+  /** Identifica o CATMAT mais adequado para uma única descrição. */
+  match: async (description: string): Promise<CatmatMatchResult> => {
+    const response = await api.post('/catmat/match', { description });
+    return response.data;
+  },
+
+  /** Identifica o CATMAT mais adequado para múltiplas descrições em lote. */
+  batchMatch: async (descriptions: string[]): Promise<{ results: CatmatMatchResult[] }> => {
+    const response = await api.post('/catmat/batch-match', { descriptions });
+    return response.data;
   },
 };
 

@@ -5,12 +5,14 @@ import { rateLimit } from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { ListController } from './controllers/ListController.js';
 import { SearchController } from './controllers/SearchController.js';
+import { CatmatController } from './controllers/CatmatController.js';
 
 dotenv.config();
 
 const app = express();
 const listController = new ListController();
 const searchController = new SearchController();
+const catmatController = new CatmatController();
 
 // Middlewares
 app.use(helmet());
@@ -50,6 +52,9 @@ app.post('/api/v1/items/:itemId/select', listController.selectResult);
 
 app.post('/api/v1/search/batch', searchController.startBatch);
 app.get('/api/v1/search/status/:jobId', searchController.getStatus);
+
+app.post('/api/v1/catmat/match', catmatController.match);
+app.post('/api/v1/catmat/batch-match', catmatController.batchMatch);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
