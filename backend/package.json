@@ -13,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@supabase/supabase-js": "^2.99.1",
     "@types/express": "^5.0.6",
     "axios": "^1.13.6",
     "cors": "^2.8.6",
@@ -21,6 +22,7 @@
     "express-rate-limit": "^8.3.1",
     "helmet": "^8.1.0",
     "nodemon": "^3.1.14",
+    "openai": "^6.29.0",
     "p-limit": "^7.3.0",
     "pg": "^8.20.0",
     "redis": "^5.11.0",

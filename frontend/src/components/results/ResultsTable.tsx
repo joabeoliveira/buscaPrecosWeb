@@ -3,17 +3,19 @@
 import React, { useState } from 'react';
 import { ExternalLink, ShoppingCart, Info, Store, CheckCircle, XCircle, RefreshCw, ZoomIn, Search, Play, LayoutList } from 'lucide-react';
 import PriceBadge from '@/components/ui/PriceBadge';
-import { ListResult, shoppingApi, ProductResult, SearchJobResponse } from '@/services/api';
+import CatmatSuggestion from '@/components/catmat/CatmatSuggestion';
+import { ListResult, shoppingApi, ProductResult, SearchJobResponse, CatmatMatchResult } from '@/services/api';
 import { cn } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 
 interface ResultsTableProps {
   results: ListResult[];
+  catmatSuggestions?: Record<string, CatmatMatchResult>;
   onAction?: () => void;
   onIndividualSearch?: (jobId: string) => void;
 }
 
-const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndividualSearch }) => {
+const ResultsTable: React.FC<ResultsTableProps> = ({ results, catmatSuggestions, onAction, onIndividualSearch }) => {
   const [analyzingItem, setAnalyzingItem] = useState<ListResult | null>(null);
   const [localSearching, setLocalSearching] = useState<string | null>(null);
 
@@ -111,6 +113,11 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
                           <span className="text-xs text-slate-400">
                              {isPending ? 'Não pesquisado' : isFound ? `${options.length} resultados encontrados` : 'Buscando...'}
                           </span>
+                          {catmatSuggestions?.[result.id] && (
+                            <div className="mt-1.5">
+                              <CatmatSuggestion result={catmatSuggestions[result.id]} />
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
