@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { Upload, FileText, AlertCircle, X } from 'lucide-react';
+import { Upload, AlertCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ListItemInput } from '@/services/api';
 
 interface FileUploaderProps {
-  onAdd: (items: string[]) => void;
+  onAdd: (items: ListItemInput[]) => void;
 }
 
 const FileUploader: React.FC<FileUploaderProps> = ({ onAdd }) => {
@@ -27,42 +28,49 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onAdd }) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
-      let items: string[] = [];
+      let finalItems: ListItemInput[] = [];
 
       if (isCsv) {
-        // Simple CSV parsing (header "produto" or first column)
+        // Simple CSV parsing (header "produto", "unidade", "quantidade")
         const lines = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length > 0) {
           const headers = lines[0].toLowerCase().split(/[;,]/);
-          const productIndex = headers.indexOf('produto');
+          const productIndex = headers.findIndex(h => h.includes('prod') || h.includes('item') || h.includes('desc'));
+          const unitIndex = headers.findIndex(h => h.includes('un') || h.includes('medida'));
+          const qtyIndex = headers.findIndex(h => h.includes('qtd') || h.includes('quant'));
           
-          if (productIndex !== -1) {
-            items = lines.slice(1).map(l => l.split(/[;,]/)[productIndex]?.trim()).filter(i => !!i);
-          } else {
-            // Fallback to first column
-            items = lines.map(l => l.split(/[;,]/)[0]?.trim()).filter(i => !!i);
-            // If it looks like a header, remove it
-            if (items[0]?.toLowerCase() === 'item' || items[0]?.toLowerCase() === 'produto' || items[0]?.toLowerCase() === 'name') {
-              items = items.slice(1);
-            }
-          }
+          const dataLines = lines.slice(1);
+          finalItems = dataLines.map(line => {
+            const cols = line.split(/[;,]/);
+            const query = cols[productIndex !== -1 ? productIndex : 0]?.trim();
+            if (!query) return null;
+
+            return {
+              query,
+              unit: (unitIndex !== -1 ? cols[unitIndex]?.trim().toLowerCase() : 'un') || 'un',
+              quantity: (qtyIndex !== -1 ? parseFloat(cols[qtyIndex]?.replace(',', '.')) : 1) || 1,
+            };
+          }).filter(i => i !== null) as ListItemInput[];
         }
       } else {
         // TXT: one per line
-        items = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        finalItems = content.split('\n')
+          .map(l => l.trim())
+          .filter(l => l.length > 0)
+          .map(query => ({ query, unit: 'un', quantity: 1 }));
       }
 
-      if (items.length > 100) {
+      if (finalItems.length > 100) {
         setError('Limite de 100 itens por arquivo excedido.');
         return;
       }
 
-      if (items.length === 0) {
+      if (finalItems.length === 0) {
         setError('Nenhum produto encontrado no arquivo.');
         return;
       }
 
-      onAdd(items);
+      onAdd(finalItems);
     };
 
     reader.onerror = () => setError('Erro ao ler o arquivo.');
@@ -85,7 +93,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onAdd }) => {
     if (file) processFile(file);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) processFile(file);
   };
@@ -107,7 +115,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onAdd }) => {
         <input
           type="file"
           ref={inputRef}
-          onChange={handleChange}
+          onChange={handleFileChange}
           accept=".txt,.csv"
           className="hidden"
         />
@@ -120,8 +128,8 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onAdd }) => {
           Arraste seu arquivo aqui
         </h3>
         <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">
-          Suporta .txt (um por linha) ou .csv (coluna "produto")<br />
-          Máximo de 100 itens.
+          Suporta .txt ou .csv (colunas: produto, unidade, quantidade)<br />
+          Máximo de 100 itens por processo.
         </p>
       </div>
 

@@ -3,14 +3,18 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
+
 import { ListController } from './controllers/ListController.js';
 import { SearchController } from './controllers/SearchController.js';
+import { UserController } from './controllers/UserController.js';
 
 dotenv.config();
 
 const app = express();
 const listController = new ListController();
 const searchController = new SearchController();
+const userController = new UserController();
 
 // Middlewares
 app.use(helmet());
@@ -41,15 +45,24 @@ app.get('/api/v1/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// List Routes
 app.post('/api/v1/lists', listController.create);
+app.get('/api/v1/lists', listController.listAll);
 app.get('/api/v1/lists/:id', listController.getById);
 app.get('/api/v1/lists/:id/results', listController.getResults);
+app.get('/api/v1/lists/:id/export', listController.exportCsv);
 app.patch('/api/v1/items/:itemId/approve', listController.approveItem);
 app.post('/api/v1/items/:itemId/select', listController.selectResult);
 
-
+// Search Routes
 app.post('/api/v1/search/batch', searchController.startBatch);
 app.get('/api/v1/search/status/:jobId', searchController.getStatus);
+
+// User/Responsible Routes
+app.get('/api/v1/users', userController.listAll);
+app.post('/api/v1/users', userController.create);
+app.post('/api/v1/users/login', userController.login);
+app.delete('/api/v1/users/:id', userController.delete);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

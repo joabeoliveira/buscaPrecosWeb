@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: 'Encontre os melhores preços em centenas de lojas simultaneamente. Suba sua lista de produtos e economize em segundos.',
 };
 
+import { AuthProvider } from '@/context/AuthContext';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -13,10 +15,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className="font-inter antialiased bg-slate-50 dark:bg-petroleum-950 text-slate-900 dark:text-slate-50">
-        <main className="min-h-screen">
-          {children}
-        </main>
+      <body className="font-inter antialiased bg-slate-50 dark:bg-petroleum-950 text-slate-900 dark:text-slate-50 transition-colors">
+        <AuthProvider>
+          <main className="min-h-screen">
+            {children}
+          </main>
+        </AuthProvider>
       </body>
     </html>
   );

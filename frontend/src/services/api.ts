@@ -9,82 +9,115 @@ const api = axios.create({
   },
 });
 
-export interface CreateListResponse {
-  id: string;
-  name: string;
-  itemsCount: number;
-  status: string;
-}
+// Auth Interceptor
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('bp_token');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
 
-export interface SearchJobResponse {
-  jobId: string;
-  listId: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  progress: number;
-  processed_items: number;
-  total_items: number;
-  error_message?: string;
+export interface ListItemInput {
+  query: string;
+  unit?: string;
+  quantity?: number;
 }
 
 export interface ListResult {
   id: string;
   shopping_list_id: string;
   original_query: string;
-  normalized_query: string;
-  status: 'found' | 'not_found' | 'error' | 'pending';
+  unit: string;
+  quantity: number;
   best_price: number | null;
   best_store: string | null;
   best_product_title: string | null;
   best_product_link: string | null;
-  thumbnail_url: string | null;
-  description: string | null;
+  thumbnail_url?: string;
+  status: 'pending' | 'processing' | 'found' | 'not_found';
   is_approved: boolean;
-  raw_response: any; // Contains the array of found products
   searched_at: string | null;
+  raw_response?: any;
 }
 
 export interface ProductResult {
   title: string;
   price: number;
-  source: string;
-  link: string | null;
-  thumbnail: string | null;
-  description: string | null;
+  link: string;
+  store: string;
+  thumbnail?: string;
+  snippet?: string;
 }
 
 export const shoppingApi = {
-  createList: async (name: string, items: string[]): Promise<CreateListResponse> => {
-    const response = await api.post('/lists', { name, items });
+  createList: async (name: string, items: (string | ListItemInput)[], clientId?: string | null, responsibleId?: string | null, internalCode?: string | null) => {
+    const response = await api.post('/lists', { 
+      name, 
+      items, 
+      clientId, 
+      responsibleId, 
+      internalCode 
+    });
     return response.data;
   },
 
-  getList: async (id: string) => {
+  listQuotations: async (filters?: { status?: string, clientId?: string }) => {
+    const response = await api.get('/lists', { params: filters });
+    return response.data;
+  },
+
+  getQuotation: async (id: string) => {
     const response = await api.get(`/lists/${id}`);
     return response.data;
   },
 
-  startSearch: async (listId: string, itemId?: string): Promise<{ jobId: string }> => {
+  getResults: async (id: string): Promise<ListResult[]> => {
+    const response = await api.get(`/lists/${id}/results`);
+    return response.data;
+  },
+
+  startBatchSearch: async (listId: string, itemId?: string) => {
     const response = await api.post('/search/batch', { listId, itemId });
     return response.data;
   },
 
-  getJobStatus: async (jobId: string): Promise<SearchJobResponse> => {
+  getSearchStatus: async (jobId: string) => {
     const response = await api.get(`/search/status/${jobId}`);
     return response.data;
   },
 
-  getResults: async (listId: string): Promise<ListResult[]> => {
-    const response = await api.get(`/lists/${listId}/results`);
+  approveItem: async (itemId: string, isApproved: boolean, userId?: string) => {
+    await api.patch(`/items/${itemId}/approve`, { isApproved, userId });
+  },
+
+  selectProduct: async (itemId: string, selection: ProductResult, userId?: string): Promise<void> => {
+    await api.post(`/items/${itemId}/select`, { selection, userId });
+  },
+
+  listUsers: async () => {
+    const response = await api.get('/users');
     return response.data;
   },
 
-  approveItem: async (itemId: string, approved: boolean): Promise<void> => {
-    await api.patch(`/items/${itemId}/approve`, { approved });
+  createUser: async (name: string, email: string, role: string = 'user') => {
+    const response = await api.post('/users', { name, email, role });
+    return response.data;
   },
 
-  selectProduct: async (itemId: string, product: ProductResult): Promise<void> => {
-    await api.post(`/items/${itemId}/select`, product);
+  login: async (email: string, password?: string) => {
+    const response = await api.post('/users/login', { email, password });
+    return response.data;
+  },
+
+  deleteUser: async (id: string) => {
+    await api.delete(`/users/${id}`);
+  },
+
+  exportQuotation: (listId: string, format: 'excel' | 'csv' = 'excel') => {
+    const url = `${API_URL}/lists/${listId}/export?format=${format}`;
+    window.open(url, '_blank');
   },
 };
-
-export default api;

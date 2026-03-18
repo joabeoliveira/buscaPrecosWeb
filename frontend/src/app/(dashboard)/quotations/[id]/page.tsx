@@ -5,8 +5,8 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import ProgressBar from '@/components/ui/ProgressBar';
 import ResultsTable from '@/components/results/ResultsTable';
 import Button from '@/components/ui/Button';
-import { shoppingApi, ListResult, SearchJobResponse } from '@/services/api';
-import { ArrowLeft, RefreshCw, CheckCircle2, AlertCircle, Clock, ShoppingBag, LayoutList, PlayCircle, Search } from 'lucide-react';
+import { shoppingApi, ListResult } from '@/services/api';
+import { ArrowLeft, RefreshCw, ShoppingBag, LayoutList, PlayCircle, Search, Building, Download, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -17,7 +17,8 @@ export default function ListResultsPage() {
   const listId = params.id as string;
 
   const [results, setResults] = useState<ListResult[]>([]);
-  const [job, setJob] = useState<SearchJobResponse | null>(null);
+  const [list, setList] = useState<any>(null);
+  const [job, setJob] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [isStartingSearch, setIsStartingSearch] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'approved'>('all');
@@ -37,6 +38,8 @@ export default function ListResultsPage() {
 
   const fetchResults = async () => {
     try {
+      const resp = await shoppingApi.getQuotation(listId);
+      setList(resp);
       const data = await shoppingApi.getResults(listId);
       if (mountedRef.current) {
         setResults(data);
@@ -54,7 +57,7 @@ export default function ListResultsPage() {
     if (!mountedRef.current) return;
 
     try {
-      const status = await shoppingApi.getJobStatus(jobId);
+      const status = await shoppingApi.getSearchStatus(jobId);
       if (!mountedRef.current) return;
 
       setJob(status);
@@ -76,7 +79,7 @@ export default function ListResultsPage() {
   const startBatchSearch = async () => {
     setIsStartingSearch(true);
     try {
-      const { jobId } = await shoppingApi.startSearch(listId);
+      const { jobId } = await shoppingApi.startBatchSearch(listId);
       await pollStatus(jobId);
     } catch (error) {
       console.error('Failed to start search:', error);
@@ -98,15 +101,12 @@ export default function ListResultsPage() {
       setErrorMsg(null);
       await fetchResults();
       
-      // We removed the auto-poll on mount to ensure user decides when to start
-      
       if (mountedRef.current) {
         setLoading(false);
       }
     };
 
     init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listId]);
 
   const approvedResults = results.filter(r => r.is_approved);
@@ -120,15 +120,21 @@ export default function ListResultsPage() {
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <Link 
-            href="/app" 
+            href="/dashboard" 
             className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-petroleum-600 dark:text-slate-400 dark:hover:text-petroleum-400"
           >
             <ArrowLeft size={16} />
-            Voltar para nova lista
+            Voltar para o Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
-            Painel de Cotação
+            {list?.name || 'Painel de Cotação'}
+            {list?.internal_code && <span className="ml-3 text-sm font-normal text-slate-400 dark:text-petroleum-600">({list.internal_code})</span>}
           </h1>
+          {list?.client_name && (
+            <p className="text-sm text-slate-500 dark:text-petroleum-400 flex items-center gap-2">
+              <Building size={14} /> {list.client_name}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -141,6 +147,15 @@ export default function ListResultsPage() {
           <Button variant="outline" size="sm" onClick={fetchResults}>
             <RefreshCw size={16} />
             Atualizar
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => shoppingApi.exportQuotation(listId)}
+            className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800/40 dark:text-emerald-400"
+          >
+            <Download size={16} />
+            Exportar Excel
           </Button>
           {!hasStartedAnySearch && results.length > 0 && (
             <Button size="sm" onClick={startBatchSearch} isLoading={isStartingSearch} className="bg-petroleum-600 hover:bg-petroleum-700 text-white">

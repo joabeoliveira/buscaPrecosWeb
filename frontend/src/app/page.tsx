@@ -32,7 +32,7 @@ export default function LandingPage() {
           </p>
 
           <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link href="/app">
+            <Link href="/dashboard">
               <Button size="lg" className="h-14 px-8 text-lg">
                 Começar agora gratuitamente
                 <ArrowRight className="ml-2" size={20} />
@@ -110,7 +110,7 @@ export default function LandingPage() {
           Não gaste horas abrindo abas. Resolva sua lista de compras em segundos.
         </p>
         <div className="mt-10">
-          <Link href="/app">
+          <Link href="/dashboard">
             <Button variant="primary" size="lg" className="bg-white text-petroleum-900 hover:bg-slate-100">
               Ir para o Aplicativo
             </Button>

@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ExternalLink, ShoppingCart, Info, Store, CheckCircle, XCircle, RefreshCw, ZoomIn, Search, Play, LayoutList } from 'lucide-react';
+import { ExternalLink, Info, Store, CheckCircle, XCircle, RefreshCw, ZoomIn, Search, LayoutList, Play } from 'lucide-react';
 import PriceBadge from '@/components/ui/PriceBadge';
-import { ListResult, shoppingApi, ProductResult, SearchJobResponse } from '@/services/api';
+import { ListResult, shoppingApi, ProductResult } from '@/services/api';
 import { cn } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 
@@ -32,7 +32,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
   const handleSingleSearch = async (itemId: string, listId: string) => {
     setLocalSearching(itemId);
     try {
-      const { jobId } = await shoppingApi.startSearch(listId, itemId);
+      const { jobId } = await shoppingApi.startBatchSearch(listId, itemId);
       if (onIndividualSearch) onIndividualSearch(jobId);
     } catch (error) {
        console.error('Erro ao iniciar busca individual:', error);
@@ -57,9 +57,9 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
         let score = 0;
         queryTerms.forEach(term => {
           if (titleLower.includes(term)) score += 10;
-          if (term.length > 3 && titleLower.startsWith(term)) score += 5; // Bonus for starting with term
+          if (term.length > 3 && titleLower.startsWith(term)) score += 5; 
         });
-        return { ...p, _score: score };
+        return { ...p, _score: score } as any;
       }).sort((a: any, b: any) => {
         if (b._score !== a._score) return b._score - a._score;
         return a.price - b.price;
@@ -77,6 +77,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
             <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:bg-petroleum-900/60 dark:text-slate-400">
               <tr>
                 <th className="px-6 py-4">Produto</th>
+                <th className="px-6 py-4 text-center">Un</th>
+                <th className="px-6 py-4 text-right">Qtd</th>
                 <th className="px-6 py-4">Status da Cotação</th>
                 <th className="px-6 py-4">Resultado Escolhido</th>
                 <th className="px-6 py-4 text-right">Ação</th>
@@ -93,7 +95,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
                   <tr 
                     key={result.id} 
                     className={cn(
-                      "group transition-all duration-200",
+                      "group transition-all duration-200 relative hover:z-10",
                       result.is_approved 
                         ? "bg-emerald-50/40 dark:bg-emerald-950/20" 
                         : "hover:bg-petroleum-50/80 dark:hover:bg-petroleum-800/40"
@@ -113,6 +115,16 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
                           </span>
                         </div>
                       </div>
+                    </td>
+
+                    <td className="px-6 py-5 text-center">
+                       <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500 dark:bg-petroleum-800 dark:text-petroleum-400">
+                          {result.unit || 'un'}
+                       </span>
+                    </td>
+
+                    <td className="px-6 py-5 text-right font-mono text-sm text-slate-600 dark:text-petroleum-300">
+                       {Number(result.quantity || 0).toLocaleString('pt-BR')}
                     </td>
                     
                     <td className="px-6 py-5">
@@ -138,13 +150,36 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
 
                     <td className="px-6 py-5">
                       {result.is_approved && result.best_product_title ? (
-                        <div className="max-w-xs">
-                          <p className="line-clamp-1 text-slate-700 dark:text-slate-300 font-medium">
-                            {result.best_product_title}
-                          </p>
-                          <div className="flex items-center gap-3 mt-1">
-                             <PriceBadge price={result.best_price} />
-                             <span className="text-xs font-bold text-petroleum-600 dark:text-petroleum-400 uppercase">{result.best_store}</span>
+                        <div className="flex items-center gap-3">
+                          {result.thumbnail_url && (
+                            <div className="relative h-12 w-12 flex-shrink-0 bg-white dark:bg-petroleum-800 rounded-lg border border-slate-100 dark:border-petroleum-700 p-1 group/thumb">
+                              <img 
+                                src={result.thumbnail_url} 
+                                alt="" 
+                                className="h-full w-full object-contain transition-all duration-300 
+                                           group-hover/thumb:scale-[4] group-hover/thumb:translate-x-[50%] group-hover/thumb:z-[100] 
+                                           relative rounded-lg cursor-zoom-in shadow-sm dark:shadow-none"
+                              />
+                            </div>
+                          )}
+                          <div className="max-w-[12rem] overflow-hidden">
+                            <p className="line-clamp-1 text-slate-700 dark:text-slate-300 font-medium text-xs">
+                              {result.best_product_title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                               <PriceBadge price={result.best_price} />
+                               <span className="text-[10px] font-bold text-petroleum-500 uppercase truncate max-w-[50px]">{result.best_store}</span>
+                               {result.best_product_link && (
+                                 <a 
+                                   href={result.best_product_link} 
+                                   target="_blank" 
+                                   className="ml-auto text-slate-400 hover:text-petroleum-600 transition-colors"
+                                   title="Abrir no site original"
+                                 >
+                                   <ExternalLink size={12} />
+                                 </a>
+                               )}
+                            </div>
                           </div>
                         </div>
                       ) : (
@@ -191,7 +226,13 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
             <div className="mb-8 flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Analisar Cotação</h2>
-                <p className="text-slate-500">Verificando resultados para: <span className="font-bold text-petroleum-600 dark:text-petroleum-400">"{analyzingItem.original_query}"</span></p>
+                <p className="text-slate-500">
+                  Item: <span className="font-bold text-petroleum-600 dark:text-petroleum-400">"{analyzingItem.original_query}"</span>
+                  <span className="ml-2 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500 dark:bg-petroleum-800 dark:text-petroleum-400">
+                    {analyzingItem.unit}
+                  </span>
+                  <span className="ml-2 font-mono text-xs">Qtd: {analyzingItem.quantity}</span>
+                </p>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setAnalyzingItem(null)}>
                 Fechar
@@ -227,14 +268,14 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
                         <PriceBadge price={product.price} />
                       </div>
                       <p className="mt-1 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
-                        {product.description}
+                        {product.snippet}
                       </p>
                     </div>
 
                     <div className="mt-3 flex items-center justify-between">
                       <div className="flex items-center gap-2 text-xs text-petroleum-600 dark:text-petroleum-400 font-bold uppercase">
                         <Store size={14} />
-                        <span>{product.source}</span>
+                        <span>{product.store}</span>
                       </div>
                       
                       <div className="flex items-center gap-2">
