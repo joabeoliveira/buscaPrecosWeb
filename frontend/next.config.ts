@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Mark server-only packages (pg, redis, etc.) so they are not bundled for client
+  serverExternalPackages: ['pg', 'redis', 'bcryptjs', 'jsonwebtoken', 'exceljs', 'p-limit'],
 };
 
 export default nextConfig;

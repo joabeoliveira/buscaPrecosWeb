@@ -61,7 +61,7 @@ const ListPreview: React.FC<ListPreviewProps> = ({
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right font-mono text-xs text-slate-600 dark:text-petroleum-300">
-                  {item.quantity.toLocaleString('pt-BR')}
+                  {(item.quantity ?? 1).toLocaleString('pt-BR')}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button 

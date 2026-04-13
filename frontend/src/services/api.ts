@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+// In Next.js API Routes architecture, API calls go to the same origin
+const API_URL = '/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -89,12 +90,15 @@ export const shoppingApi = {
     return response.data;
   },
 
-  approveItem: async (itemId: string, isApproved: boolean, userId?: string) => {
-    await api.patch(`/items/${itemId}/approve`, { isApproved, userId });
+  approveItem: async (itemId: string, isApproved: boolean, userId?: string, listId?: string) => {
+    // Use the list-scoped route; listId is needed for the new URL structure
+    const lid = listId || 'default';
+    await api.patch(`/lists/${lid}/approve/${itemId}`, { isApproved, userId });
   },
 
-  selectProduct: async (itemId: string, selection: ProductResult, userId?: string): Promise<void> => {
-    await api.post(`/items/${itemId}/select`, { selection, userId });
+  selectProduct: async (itemId: string, selection: ProductResult, userId?: string, listId?: string): Promise<void> => {
+    const lid = listId || 'default';
+    await api.post(`/lists/${lid}/select/${itemId}`, { selection, userId });
   },
 
   listUsers: async () => {
@@ -113,7 +117,7 @@ export const shoppingApi = {
   },
 
   deleteUser: async (id: string) => {
-    await api.delete(`/users/${id}`);
+    await api.delete(`/users?id=${id}`);
   },
 
   exportQuotation: (listId: string, format: 'excel' | 'csv' = 'excel') => {
