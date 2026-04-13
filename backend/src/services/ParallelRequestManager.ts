@@ -4,9 +4,39 @@ import { sleep } from '../utils/helpers.js';
 
 export class ParallelRequestManager {
   private limit;
+  private readonly itemTimeoutMs: number;
 
-  constructor(concurrency: number = 5) {
+  constructor(concurrency: number = 5, itemTimeoutMs: number = 30000) {
     this.limit = pLimit(concurrency);
+    this.itemTimeoutMs = itemTimeoutMs;
+  }
+
+  private async withTimeout(query: string, promise: Promise<PriceResult>): Promise<PriceResult> {
+    let timeoutHandle: NodeJS.Timeout | null = null;
+
+    try {
+      const timeoutPromise = new Promise<PriceResult>((resolve) => {
+        timeoutHandle = setTimeout(() => {
+          console.warn(`[Batch] Timeout processing item "${query}" after ${this.itemTimeoutMs}ms`);
+          resolve({
+            status: 'error',
+            results: [],
+            searchedAt: new Date(),
+          });
+        }, this.itemTimeoutMs);
+      });
+
+      return await Promise.race([promise, timeoutPromise]);
+    } catch (error: any) {
+      console.error(`[Batch] Unexpected error processing item "${query}":`, error?.message || error);
+      return {
+        status: 'error',
+        results: [],
+        searchedAt: new Date(),
+      };
+    } finally {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+    }
   }
 
   async processBatch(
@@ -18,13 +48,17 @@ export class ParallelRequestManager {
       return this.limit(async () => {
         // Delay to avoid aggressive bursts and respect rate limits
         if (index > 0) await sleep(500);
-        
-        const result = await searchFn(query);
-        
+
+        const result = await this.withTimeout(query, searchFn(query));
+
         if (onItemProcessed) {
-          await onItemProcessed(query, result);
+          try {
+            await onItemProcessed(query, result);
+          } catch (error: any) {
+            console.error(`[Batch] onItemProcessed failed for "${query}":`, error?.message || error);
+          }
         }
-        
+
         return result;
       });
     });

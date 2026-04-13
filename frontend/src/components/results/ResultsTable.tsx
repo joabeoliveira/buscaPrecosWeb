@@ -16,6 +16,7 @@ interface ResultsTableProps {
 const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndividualSearch }) => {
   const [analyzingItem, setAnalyzingItem] = useState<ListResult | null>(null);
   const [localSearching, setLocalSearching] = useState<string | null>(null);
+  const [analysisSortMode, setAnalysisSortMode] = useState<'priceAsc' | 'priceDesc' | 'relevanceThenPrice'>('priceAsc');
 
   if (results.length === 0) return null;
 
@@ -42,10 +43,30 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
     }
   };
 
-  const getResultsArray = (originalQuery: string, rawResponse: any): ProductResult[] => {
+  const getResultsArray = (
+    originalQuery: string,
+    rawResponse: any,
+    sortMode: 'relevanceThenPrice' | 'priceAsc' | 'priceDesc' = 'relevanceThenPrice'
+  ): ProductResult[] => {
     try {
       if (!rawResponse) return [];
       const items: ProductResult[] = typeof rawResponse === 'string' ? JSON.parse(rawResponse) : rawResponse;
+
+      if (sortMode === 'priceAsc') {
+        return [...items].sort((a, b) => {
+          const priceA = Number.isFinite(a.price) ? a.price : Number.POSITIVE_INFINITY;
+          const priceB = Number.isFinite(b.price) ? b.price : Number.POSITIVE_INFINITY;
+          return priceA - priceB;
+        });
+      }
+
+      if (sortMode === 'priceDesc') {
+        return [...items].sort((a, b) => {
+          const priceA = Number.isFinite(a.price) ? a.price : Number.NEGATIVE_INFINITY;
+          const priceB = Number.isFinite(b.price) ? b.price : Number.NEGATIVE_INFINITY;
+          return priceB - priceA;
+        });
+      }
       
       const queryTerms = originalQuery.toLowerCase()
         .replace(/[-]/g, ' ')
@@ -89,6 +110,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
                 const options = getResultsArray(result.original_query, result.raw_response);
                 const isFound = result.status === 'found';
                 const isPending = result.status === 'pending';
+                const isNotFound = result.status === 'not_found';
+                const isError = result.status === 'error';
                 const isSearching = localSearching === result.id;
                 
                 return (
@@ -111,7 +134,15 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
                             {result.original_query}
                           </span>
                           <span className="text-xs text-slate-400">
-                             {isPending ? 'Não pesquisado' : isFound ? `${options.length} resultados encontrados` : 'Buscando...'}
+                             {isPending
+                               ? 'Não pesquisado'
+                               : isFound
+                               ? `${options.length} resultados encontrados`
+                               : isNotFound
+                               ? 'Nenhum resultado encontrado'
+                               : isError
+                               ? 'Falha na busca'
+                               : 'Buscando...'}
                           </span>
                         </div>
                       </div>
@@ -137,6 +168,16 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
                          <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold">
                             <Search size={16} />
                             <span>Análise Pendente</span>
+                         </div>
+                       ) : isNotFound ? (
+                         <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-300 font-semibold">
+                            <Info size={16} />
+                            <span>Sem resultados</span>
+                         </div>
+                       ) : isError ? (
+                         <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-semibold">
+                            <XCircle size={16} />
+                            <span>Falha na busca</span>
                          </div>
                        ) : isPending ? (
                          <span className="text-slate-400 italic">Aguardando decisão</span>
@@ -188,7 +229,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
                     </td>
 
                     <td className="px-6 py-5 text-right">
-                      {isPending ? (
+                      {isPending || isNotFound || isError ? (
                         <Button
                           variant="outline"
                           size="sm"
@@ -197,13 +238,16 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
                           className="gap-2 border-petroleum-200 text-petroleum-700 hover:bg-petroleum-50 dark:border-petroleum-800 dark:text-petroleum-400"
                         >
                           <Play size={14} />
-                          <span>Cotar agora</span>
+                          <span>{isPending ? 'Cotar agora' : 'Tentar novamente'}</span>
                         </Button>
                       ) : isFound ? (
                         <Button
                           variant={result.is_approved ? 'outline' : 'primary'}
                           size="sm"
-                          onClick={() => setAnalyzingItem(result)}
+                          onClick={() => {
+                            setAnalysisSortMode('priceAsc');
+                            setAnalyzingItem(result);
+                          }}
                           className="gap-2"
                         >
                           <ZoomIn size={16} />
@@ -240,9 +284,23 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
             </div>
 
             <div className="space-y-4">
-              <p className="text-sm font-medium text-slate-400 uppercase tracking-wider">Selecione o produto correto para aprovar:</p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-medium text-slate-400 uppercase tracking-wider">Selecione o produto correto para aprovar:</p>
+                <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Ordenar por
+                  <select
+                    value={analysisSortMode}
+                    onChange={(e) => setAnalysisSortMode(e.target.value as 'priceAsc' | 'priceDesc' | 'relevanceThenPrice')}
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-petroleum-500 dark:border-petroleum-700 dark:bg-petroleum-900 dark:text-slate-200"
+                  >
+                    <option value="priceAsc">Menor preco</option>
+                    <option value="priceDesc">Maior preco</option>
+                    <option value="relevanceThenPrice">Relevancia</option>
+                  </select>
+                </label>
+              </div>
               
-              {getResultsArray(analyzingItem.original_query, analyzingItem.raw_response).map((product, idx) => (
+              {getResultsArray(analyzingItem.original_query, analyzingItem.raw_response, analysisSortMode).map((product, idx) => (
                 <div 
                   key={idx}
                   className={cn(
@@ -311,6 +369,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
 const LayoutIcon = ({ status }: { status: string }) => {
   if (status === 'pending') return <LayoutList size={20} />;
   if (status === 'found') return <CheckCircle size={20} className="text-emerald-500" />;
+  if (status === 'not_found') return <Info size={20} className="text-slate-500" />;
   if (status === 'error') return <XCircle size={20} className="text-rose-500" />;
   return <RefreshCw size={20} className="animate-spin text-petroleum-400" />;
 }

@@ -37,7 +37,7 @@ export interface ListResult {
   best_product_title: string | null;
   best_product_link: string | null;
   thumbnail_url?: string;
-  status: 'pending' | 'processing' | 'found' | 'not_found';
+  status: 'pending' | 'processing' | 'found' | 'not_found' | 'error';
   is_approved: boolean;
   searched_at: string | null;
   raw_response?: any;

@@ -6,7 +6,7 @@ import ProgressBar from '@/components/ui/ProgressBar';
 import ResultsTable from '@/components/results/ResultsTable';
 import Button from '@/components/ui/Button';
 import { shoppingApi, ListResult } from '@/services/api';
-import { ArrowLeft, RefreshCw, ShoppingBag, LayoutList, PlayCircle, Search, Building, Download, Clock } from 'lucide-react';
+import { ArrowLeft, RefreshCw, ShoppingBag, LayoutList, PlayCircle, Search, Building, Download, Clock, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -113,6 +113,31 @@ export default function ListResultsPage() {
   const displayResults = activeTab === 'all' ? results : approvedResults;
   
   const hasStartedAnySearch = results.some(r => r.status !== 'pending') || !!job;
+  const failedResults = results.filter(r => r.status === 'not_found' || r.status === 'error');
+  const hasFailed = failedResults.length > 0;
+
+  const retryFailedItems = async () => {
+    if (failedResults.length === 0) return;
+    
+    setIsStartingSearch(true);
+    try {
+      // Start batch search for each failed item individually
+      const promises = failedResults.map(item => 
+        shoppingApi.startBatchSearch(listId, item.id)
+      );
+      const retryResults = await Promise.all(promises);
+      
+      // Poll the first job to track overall progress
+      if (retryResults[0]) {
+        await pollStatus(retryResults[0].jobId);
+      }
+    } catch (error) {
+      console.error('Failed to retry failed items:', error);
+      setErrorMsg('Erro ao reprocessar itens com falha.');
+    } finally {
+      setIsStartingSearch(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -138,6 +163,17 @@ export default function ListResultsPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {hasFailed && !isStartingSearch && (
+            <Button 
+              size="sm" 
+              onClick={retryFailedItems} 
+              isLoading={isStartingSearch}
+              className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-800/40 dark:text-rose-400 border"
+            >
+              <AlertTriangle size={16} />
+              Reprocessar ({failedResults.length})
+            </Button>
+          )}
           <div className="hidden text-right sm:block">
             <p className="text-xs text-slate-500">Última atualização</p>
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
