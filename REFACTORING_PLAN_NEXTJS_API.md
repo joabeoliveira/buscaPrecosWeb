@@ -14,15 +14,15 @@ Converter a arquitetura de monorepo (Express Backend + Next.js Frontend) para um
 ## Fases de Refatoração
 
 ### **Fase 1: Preparação e Setup (Dia 1)**
-Status: `não iniciado`
+Status: `✅ concluído`
 
 #### Tarefas:
-- [ ] Criar branch `refactor/nextjs-api-routes`
-- [ ] Consolidar `tsconfig` (remover do backend, estender do frontend)
-- [ ] Estruturar diretório `frontend/src/app/api/`
-- [ ] Mover types compartilhadas para `frontend/src/types/`
-- [ ] Configurar variáveis de ambiente para API no frontend
-- [ ] Remover duplicação de dependências
+- [x] Criar branch `refactor/nextjs-api-routes`
+- [x] Consolidar `tsconfig` (remover do backend, estender do frontend)
+- [x] Estruturar diretório `frontend/src/app/api/`
+- [x] Mover types compartilhadas para `frontend/src/types/`
+- [x] Configurar variáveis de ambiente para API no frontend
+- [x] Remover duplicação de dependências
 
 **Arquivos afetados:**
 ```
@@ -46,13 +46,13 @@ frontend/
 
 ### **Fase 2: Migração de Serviços Compartilhados (Dia 2)**
 
-Status: `não iniciado`
+Status: `✅ concluído`
 
 #### Tarefas:
-- [ ] Mover `backend/src/db/pool.ts` → `frontend/src/services/db/pool.ts`
-- [ ] Mover `backend/src/services/cache/RedisCacheService.ts` → `frontend/src/services/cache/RedisCacheService.ts`
-- [ ] Mover tipos de database para `frontend/src/types/database.ts`
-- [ ] Atualizar imports em todo o frontend
+- [x] Mover `backend/src/db/pool.ts` → `frontend/src/services/db/pool.ts`
+- [x] Mover `backend/src/services/cache/RedisCacheService.ts` → `frontend/src/services/cache/RedisCacheService.ts`
+- [x] Mover tipos de database para `frontend/src/types/database.ts`
+- [x] Atualizar imports em todo o frontend
 
 **Estrutura de destino:**
 ```
@@ -72,14 +72,14 @@ frontend/src/
 
 ### **Fase 3: Migração de Repositories (Dias 3-4)**
 
-Status: `não iniciado`
+Status: `✅ concluído`
 
 #### Tarefas:
-- [ ] Mover `JobRepository` → `frontend/src/app/api/repositories/JobRepository.ts`
-- [ ] Mover `ListRepository` → `frontend/src/app/api/repositories/ListRepository.ts`
-- [ ] Mover `UserRepository` → `frontend/src/app/api/repositories/UserRepository.ts`
-- [ ] Adicionar validação com Zod se não existir
-- [ ] Atualizar imports
+- [x] Mover `JobRepository` → `frontend/src/app/api/repositories/JobRepository.ts`
+- [x] Mover `ListRepository` → `frontend/src/app/api/repositories/ListRepository.ts`
+- [x] Mover `UserRepository` → `frontend/src/app/api/repositories/UserRepository.ts`
+- [x] Adicionar validação com Zod se não existir
+- [x] Atualizar imports
 
 **Arquivos novos:**
 ```
@@ -94,14 +94,14 @@ frontend/src/app/api/
 
 ### **Fase 4: Migração de Serviços de Negócio (Dias 5-6)**
 
-Status: `não iniciado`
+Status: `✅ concluído`
 
 #### Tarefas:
-- [ ] Mover `SerperService` → `frontend/src/app/api/services/SerperService.ts`
-- [ ] Mover `BatchProcessor` → `frontend/src/app/api/services/BatchProcessor.ts`
-- [ ] Mover `ParallelRequestManager` → `frontend/src/app/api/services/ParallelRequestManager.ts`
-- [ ] Revisar dependências de cada serviço
-- [ ] Testar em desenvolvimento
+- [x] Mover `SerperService` → `frontend/src/app/api/services/SerperService.ts`
+- [x] Mover `BatchProcessor` → `frontend/src/app/api/services/BatchProcessor.ts`
+- [x] Mover `ParallelRequestManager` → `frontend/src/app/api/services/ParallelRequestManager.ts`
+- [x] Revisar dependências de cada serviço
+- [x] Testar em desenvolvimento
 
 **Arquivos novos:**
 ```
@@ -116,25 +116,25 @@ frontend/src/app/api/
 
 ### **Fase 5: Migração de Controllers para API Routes (Dias 7-8)**
 
-Status: `não iniciado`
+Status: `✅ concluído`
 
 #### Tarefas:
 
 ##### SearchController → API Routes
-- [ ] Criar `frontend/src/app/api/search/batch/route.ts` (POST)
+- [x] Criar `frontend/src/app/api/search/batch/route.ts` (POST)
   - Move lógica de `SearchController.startBatch`
-- [ ] Criar `frontend/src/app/api/search/status/[jobId]/route.ts` (GET)
+- [x] Criar `frontend/src/app/api/search/status/[jobId]/route.ts` (GET)
   - Move lógica de `SearchController.getStatus`
 
 ##### ListController → API Routes
-- [ ] Criar `frontend/src/app/api/lists/route.ts` (GET, POST)
-- [ ] Criar `frontend/src/app/api/lists/[id]/route.ts` (GET)
-- [ ] Criar `frontend/src/app/api/lists/[id]/results/route.ts` (GET)
-- [ ] Criar `frontend/src/app/api/lists/[id]/export/route.ts` (GET)
+- [x] Criar `frontend/src/app/api/lists/route.ts` (GET, POST)
+- [x] Criar `frontend/src/app/api/lists/[id]/route.ts` (GET)
+- [x] Criar `frontend/src/app/api/lists/[id]/results/route.ts` (GET)
+- [x] Criar `frontend/src/app/api/lists/[id]/export/route.ts` (GET)
 
 ##### UserController → API Routes
-- [ ] Criar `frontend/src/app/api/users/route.ts` (GET, POST, DELETE)
-- [ ] Criar `frontend/src/app/api/users/login/route.ts` (POST)
+- [x] Criar `frontend/src/app/api/users/route.ts` (GET, POST, DELETE)
+- [x] Criar `frontend/src/app/api/users/login/route.ts` (POST)
 
 **Estrutura final:**
 ```
@@ -169,11 +169,11 @@ frontend/src/app/api/
 
 ### **Fase 6: Atualizar Client API (Frontend) (Dia 9)**
 
-Status: `não iniciado`
+Status: `✅ concluído`
 
 #### Tarefas:
-- [ ] Remover imports internos do `backend/` em `frontend/src/services/api.ts`
-- [ ] Garantir URLs de API usam `/api/*` (local) ou env var (produção)
+- [x] Remover imports internos do `backend/` em `frontend/src/services/api.ts`
+- [x] Garantir URLs de API usam `/api/*` (local) ou env var (produção)
 - [ ] Testar todas as chamadas da UI
 
 ---
@@ -322,8 +322,8 @@ buscaPrecosWeb/
 ## Checklist de Migração
 
 ### Antes de começar
-- [ ] Criar branch `refactor/nextjs-api-routes`
-- [ ] Backup do código atual
+- [x] Criar branch `refactor/nextjs-api-routes`
+- [x] Backup do código atual
 - [ ] Comunicar ao time (se houver)
 
 ### Durante o processo
