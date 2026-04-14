@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { UserRepository } from '../../repositories/UserRepository';
+import { pool } from '@/services/db/pool';
 
 const userRepository = new UserRepository();
 
@@ -15,8 +16,8 @@ export async function GET() {
     const password_hash = await bcrypt.hash(password, 10);
     
     if (existingUser) {
-      // Se já existe, apenas atualizamos a senha para garantir
-      await userRepository.pool.query(
+      // Se já existe, usamos o pool importado
+      await pool.query(
         'UPDATE users SET password_hash = $1, role = $2 WHERE email = $3',
         [password_hash, 'admin', email]
       );
@@ -24,7 +25,7 @@ export async function GET() {
     }
 
     // Se não existe, cria
-    await userRepository.pool.query(
+    await pool.query(
       'INSERT INTO users (name, email, role, password_hash) VALUES ($1, $2, $3, $4)',
       ['Joabe Antonio', email, 'admin', password_hash]
     );
