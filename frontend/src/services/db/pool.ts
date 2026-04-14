@@ -3,7 +3,7 @@ import pg from 'pg';
 const { Pool } = pg;
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://dev:dev123@localhost:5437/BuscaPrecosWeb',
+  connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL || 'postgresql://dev:dev123@localhost:5437/BuscaPrecosWeb',
 });
 
 pool.on('error', (err) => {
