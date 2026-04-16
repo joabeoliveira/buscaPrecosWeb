@@ -124,4 +124,22 @@ export const shoppingApi = {
     const url = `${API_URL}/lists/${listId}/export?format=${format}`;
     window.open(url, '_blank');
   },
+
+  sendQuotationToN8n: async (listId: string, data: any) => {
+    const response = await api.post('/n8n/send-quotation', {
+      quotation_id: listId,
+      ...data
+    });
+    return response.data;
+  },
+
+  listClients: async () => {
+    const response = await api.get('/clients');
+    return response.data;
+  },
+
+  createClient: async (data: { name: string; document?: string; email?: string; phone?: string }) => {
+    const response = await api.post('/clients', data);
+    return response.data;
+  },
 };

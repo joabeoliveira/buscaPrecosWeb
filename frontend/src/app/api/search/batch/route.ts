@@ -1,7 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { BatchProcessor } from '@/app/api/services/BatchProcessor';
 import { SearchBatchSchema } from '@/app/api/lib/validation';
 import { z } from 'zod';
+
+// For Vercel Hobby, max limit is generally 10s or 60s for background tasks depending on config
+export const maxDuration = 60; // Max allowed serverless duration in seconds
 
 const batchProcessor = new BatchProcessor();
 
@@ -9,7 +12,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { listId, itemId } = SearchBatchSchema.parse(body);
-    const jobId = await batchProcessor.startJob(listId, itemId);
+    const { jobId, processFunction } = await batchProcessor.startJob(listId, itemId);
+
+    // Schedule background execution in Vercel so the container doesn't freeze
+    after(processFunction);
 
     return NextResponse.json(
       {

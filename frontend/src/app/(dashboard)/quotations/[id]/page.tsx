@@ -6,7 +6,7 @@ import ProgressBar from '@/components/ui/ProgressBar';
 import ResultsTable from '@/components/results/ResultsTable';
 import Button from '@/components/ui/Button';
 import { shoppingApi, ListResult } from '@/services/api';
-import { ArrowLeft, RefreshCw, ShoppingBag, LayoutList, PlayCircle, Search, Building, Download, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, RefreshCw, ShoppingBag, LayoutList, PlayCircle, Search, Building, Download, Clock, AlertTriangle, Send, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +24,8 @@ export default function ListResultsPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'approved'>('all');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSendingToN8n, setIsSendingToN8n] = useState(false);
+  const [isSuccessN8n, setIsSuccessN8n] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
@@ -121,13 +123,10 @@ export default function ListResultsPage() {
     
     setIsStartingSearch(true);
     try {
-      // Start batch search for each failed item individually
       const promises = failedResults.map(item => 
         shoppingApi.startBatchSearch(listId, item.id)
       );
       const retryResults = await Promise.all(promises);
-      
-      // Poll the first job to track overall progress
       if (retryResults[0]) {
         await pollStatus(retryResults[0].jobId);
       }
@@ -136,6 +135,51 @@ export default function ListResultsPage() {
       setErrorMsg('Erro ao reprocessar itens com falha.');
     } finally {
       setIsStartingSearch(false);
+    }
+  };
+
+  const handleSendToN8n = async () => {
+    if (approvedResults.length === 0) return;
+    
+    if (!list?.client_email) {
+      alert('Esta cotação não possui um cliente vinculado com e-mail cadastrado. Vincule um cliente com e-mail para enviar.');
+      return;
+    }
+    
+    setIsSendingToN8n(true);
+    setIsSuccessN8n(false);
+    setErrorMsg(null);
+
+    try {
+      const data = {
+        name: list.name,
+        client_name: list.client_name,
+        client_email: list.client_email,
+        internal_code: list.internal_code,
+        items: approvedResults.map(item => ({
+          product: item.original_query,
+          unit: item.unit || 'un',
+          quantity: item.quantity || 1,
+          price: item.best_price,
+          store: item.best_store,
+          link: item.best_product_link
+        }))
+      };
+
+      await shoppingApi.sendQuotationToN8n(listId, data);
+      
+      if (mountedRef.current) {
+        setIsSuccessN8n(true);
+        // Reset success state after 5 seconds
+        setTimeout(() => {
+          if (mountedRef.current) setIsSuccessN8n(false);
+        }, 5000);
+      }
+    } catch (error) {
+      console.error('Failed to send to n8n:', error);
+      setErrorMsg('Erro ao enviar cotação para o cliente via n8n.');
+    } finally {
+      setIsSendingToN8n(false);
     }
   };
 
@@ -193,6 +237,43 @@ export default function ListResultsPage() {
             <Download size={16} />
             Exportar Excel
           </Button>
+
+          {approvedResults.length > 0 && (
+            <div className="relative group">
+              <Button 
+                size="sm" 
+                onClick={handleSendToN8n}
+                isLoading={isSendingToN8n}
+                disabled={!list?.client_email && !isSendingToN8n}
+                className={cn(
+                  "gap-2 shadow-sm transition-all",
+                  isSuccessN8n 
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                    : !list?.client_email 
+                      ? "bg-slate-300 text-slate-500 cursor-not-allowed dark:bg-petroleum-800 dark:text-petroleum-500"
+                      : "bg-petroleum-800 hover:bg-petroleum-900 text-white dark:bg-petroleum-600 dark:hover:bg-petroleum-500"
+                )}
+              >
+                {isSuccessN8n ? (
+                  <>
+                    <CheckCircle size={16} />
+                    Disponível p/ Cliente
+                  </>
+                ) : (
+                  <>
+                    <Send size={16} />
+                    Enviar p/ Cliente (n8n)
+                  </>
+                )}
+              </Button>
+              {!list?.client_email && (
+                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl z-50">
+                  Vincule um cliente com e-mail para habilitar o envio.
+                </div>
+              )}
+            </div>
+          )}
+
           {!hasStartedAnySearch && results.length > 0 && (
             <Button size="sm" onClick={startBatchSearch} isLoading={isStartingSearch} className="bg-petroleum-600 hover:bg-petroleum-700 text-white">
                <PlayCircle size={18} className="mr-2" />

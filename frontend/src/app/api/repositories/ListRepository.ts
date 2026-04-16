@@ -68,7 +68,7 @@ export class ListRepository {
 
   async getById(id: string): Promise<ShoppingList | null> {
     const result = await pool.query(
-      `SELECT sl.*, c.name as client_name, u.name as responsible_name
+      `SELECT sl.*, c.name as client_name, c.email as client_email, u.name as responsible_name
        FROM shopping_lists sl
        LEFT JOIN clients c ON sl.client_id = c.id
        LEFT JOIN users u ON sl.responsible_id = u.id

@@ -1,0 +1,94 @@
+{
+  "name": "Enviar Cotação ao Cliente",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "enviar-cotacao",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "e4d48e33-7608-4284-9311-c1565c037e27",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "22f09c48-02cf-4604-9505-3ec67770a7f6"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://script.google.com/macros/s/AKfycbyLmmIpxMGpf_JRhp46iuFfjnM6eXt01akdG6pm6LXQTenBseSbSBKDj22Fjvz93_JKCg/exec",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-1234-56789abcdef0",
+      "name": "Gerar Planilha (Apps Script)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$node[\"Webhook\"].json[\"body\"][\"client_email\"]}}",
+        "subject": "=Sua Cotação está pronta: {{$node[\"Webhook\"].json[\"body\"][\"name\"]}}",
+        "message": "=<html> <body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">   <div style=\"max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;\">     <h2 style=\"color: #1a365d;\">Olá, {{$node[\"Webhook\"].json[\"body\"][\"client_name\"]}}!</h2>          <p>Informamos que sua cotação <strong>{{$node[\"Webhook\"].json[\"body\"][\"internal_code\"]}}</strong> foi finalizada com sucesso.</p>          <p>O arquivo consolidado, contendo uma tabela linda e formatada com os melhores preços e fornecedores encontrados, está disponível no Google Drive:</p>          <div style=\"text-align: center; margin: 30px 0;\">       <a href=\"{{ $json[\"spreadsheetUrl\"] }}\"           style=\"display: inline-block; padding: 14px 28px; background-color: #1a365d; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold;\">          Acessar Planilha de Cotação       </a>     </div>      <div style=\"background-color: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;\">       <p style=\"margin: 0;\"><strong>Resumo da Cotação:</strong></p>       <ul style=\"margin-top: 5px;\">         <li><strong>Cotação:</strong> {{$node[\"Webhook\"].json[\"body\"][\"name\"]}}</li>         <li><strong>Valor Total Estimado:</strong> R$ {{$json[\"total_geral\"].toFixed(2)}}</li>       </ul>     </div>      <p style=\"font-size: 14px; color: #718096;\">Este é um e-mail automático enviado pelo sistema BuscaPrecosWeb.</p>   </div> </body> </html>",
+        "options": {}
+      },
+      "id": "8237bd05-4f91-4300-a0dc-83b2870c6b2d",
+      "name": "Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "0Q8dL0KB9Ty0WeEA",
+          "name": "Gmail account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Gerar Planilha (Apps Script)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Planilha (Apps Script)": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "256d6750-5473-433c-a423-f560fac15071",
+  "id": "lJCDVNy4luo7dtop",
+  "tags": []
+}

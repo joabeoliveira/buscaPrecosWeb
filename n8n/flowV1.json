@@ -1,0 +1,369 @@
+{
+    "name": "Enviar Cotação ao Cliente",
+    "nodes": [
+        {
+            "parameters": {
+                "resource": "spreadsheet",
+                "title": "={{$json.quotation_name}} - {{$json.client_name}}",
+                "options": {}
+            },
+            "id": "54f1101f-1856-4a6a-ad87-748d96045e36",
+            "name": "Criar Planilha",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4,
+            "position": [
+                144,
+                -112
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "wHIpEHjK5qArJxcM",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "={{$node[\"Criar Planilha\"].json[\"spreadsheetId\"]}}",
+                    "mode": "id"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "Página1",
+                    "mode": "name"
+                },
+                "columns": {
+                    "mappingMode": "defineAcrossItems",
+                    "value": {},
+                    "matchingColumns": [],
+                    "schema": [
+                        {
+                            "id": "spreadsheetId",
+                            "displayName": "spreadsheetId",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "properties",
+                            "displayName": "properties",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "sheets",
+                            "displayName": "sheets",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "spreadsheetUrl",
+                            "displayName": "spreadsheetUrl",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "id": "6140ae78-72f3-4a4b-a410-33ea7bed4873",
+            "name": "Gravar Itens",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4,
+            "position": [
+                352,
+                -112
+            ],
+            "alwaysOutputData": true,
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "wHIpEHjK5qArJxcM",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "enviar-cotacao",
+                "options": {}
+            },
+            "id": "e4d48e33-7608-4284-9311-c1565c037e27",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                -256,
+                -112
+            ],
+            "webhookId": "22f09c48-02cf-4604-9505-3ec67770a7f6"
+        },
+        {
+            "parameters": {
+                "jsCode": "const body = $node[\"Webhook\"].json[\"body\"];\nconst items = body[\"items\"];\n\nlet totalGeral = 0;\nconst tableRows = items.map(item => {\n  const itemTotal = (item.price || 0) * (item.quantity || 1);\n  totalGeral += itemTotal;\n  return {\n    \"Produto\": item.product,\n    \"Unid\": item.unit,\n    \"Qtd\": item.quantity,\n    \"Preço Unit\": item.price,\n    \"Total\": itemTotal,\n    \"Fornecedor\": item.store,\n    \"Link para Compra\": item.link\n  };\n});\n\nreturn [{\n  json: {\n    client_email: body.client_email,\n    client_name: body.client_name,\n    quotation_name: body.name,\n    internal_code: body.internal_code,\n    items_to_append: tableRows,\n    total_geral: totalGeral\n  }\n}];"
+            },
+            "id": "933b2bef-22de-4c41-9ae9-20a5c5c762b0",
+            "name": "Normalizar Dados",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -48,
+                -112
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "move",
+                "fileId": {
+                    "__rl": true,
+                    "value": "={{$node[\"Criar Planilha\"].json[\"spreadsheetId\"]}}",
+                    "mode": "id"
+                },
+                "driveId": {
+                    "__rl": true,
+                    "mode": "list",
+                    "value": "My Drive"
+                },
+                "folderId": {
+                    "__rl": true,
+                    "value": "1WnooUiTQKIO_SVUsCeP133HRX2F8WIKJ",
+                    "mode": "id"
+                }
+            },
+            "id": "3cb65dc8-a7cc-4c03-94ca-bd740da9ef19",
+            "name": "Mover para Pasta",
+            "type": "n8n-nodes-base.googleDrive",
+            "typeVersion": 3,
+            "position": [
+                544,
+                -112
+            ],
+            "credentials": {
+                "googleDriveOAuth2Api": {
+                    "id": "YWPbK3wLjyGpg3BZ",
+                    "name": "Google Drive account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "share",
+                "fileId": {
+                    "__rl": true,
+                    "value": "={{$node[\"Criar Planilha\"].json[\"spreadsheetId\"]}}",
+                    "mode": "id"
+                },
+                "permissionsUi": {
+                    "permissionsValues": {
+                        "role": "reader",
+                        "type": "anyone"
+                    }
+                },
+                "options": {}
+            },
+            "id": "3fd8d089-662c-4b1f-b2e3-7b96704012eb",
+            "name": "Google Drive Share",
+            "type": "n8n-nodes-base.googleDrive",
+            "typeVersion": 3,
+            "position": [
+                752,
+                -112
+            ],
+            "credentials": {
+                "googleDriveOAuth2Api": {
+                    "id": "YWPbK3wLjyGpg3BZ",
+                    "name": "Google Drive account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "sendTo": "={{$node[\"Normalizar Dados\"].json[\"client_email\"]}}",
+                "subject": "=Sua Cotação está pronta: {{$node[\"Normalizar Dados\"].json[\"quotation_name\"]}}",
+                "message": "=<html> <body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">   <div style=\"max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;\">     <h2 style=\"color: #2D3748;\">Olá, {{$node[\"Normalizar Dados\"].json[\"client_name\"]}}!</h2>          <p>Informamos que sua cotação <strong>{{$node[\"Normalizar Dados\"].json[\"internal_code\"]}}</strong> foi finalizada com sucesso.</p>          <p>O arquivo consolidado com os melhores preços e fornecedores encontrados está disponível no Google Drive:</p>          <div style=\"text-align: center; margin: 30px 0;\">       <a href=\"{{ $('Criar Planilha').item.json.spreadsheetUrl }}\"           style=\"display: inline-block; padding: 14px 28px; background-color: #2D3748; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold;\">          Acessar Planilha de Cotação       </a>     </div>      <div style=\"background-color: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;\">       <p style=\"margin: 0;\"><strong>Resumo da Cotação:</strong></p>       <ul style=\"margin-top: 5px;\">         <li><strong>Cotação:</strong> {{$node[\"Normalizar Dados\"].json[\"quotation_name\"]}}</li>         <li><strong>Valor Total Estimado:</strong> R$ {{$node[\"Normalizar Dados\"].json[\"total_geral\"].toFixed(2)}}</li>       </ul>     </div>      <p style=\"font-size: 14px; color: #718096;\">Este é um e-mail automático enviado pelo sistema BuscaPrecosWeb.</p>   </div> </body> </html>",
+                "options": {}
+            },
+            "id": "8237bd05-4f91-4300-a0dc-83b2870c6b2d",
+            "name": "Gmail",
+            "type": "n8n-nodes-base.gmail",
+            "typeVersion": 2,
+            "position": [
+                944,
+                -112
+            ],
+            "webhookId": "751c3b72-0d9b-49f2-b05b-c3000c2a4f42",
+            "credentials": {
+                "gmailOAuth2": {
+                    "id": "0Q8dL0KB9Ty0WeEA",
+                    "name": "Gmail account 2"
+                }
+            }
+        }
+    ],
+    "pinData": {
+        "Webhook": [
+            {
+                "json": {
+                    "headers": {
+                        "host": "n8n-n8n.yg64ke.easypanel.host",
+                        "user-agent": "axios/1.13.6",
+                        "content-length": "1598",
+                        "accept": "application/json, text/plain, */*",
+                        "accept-encoding": "gzip, compress, deflate, br",
+                        "content-type": "application/json",
+                        "x-forwarded-for": "200.165.13.111",
+                        "x-forwarded-host": "n8n-n8n.yg64ke.easypanel.host",
+                        "x-forwarded-port": "443",
+                        "x-forwarded-proto": "https",
+                        "x-forwarded-server": "de18c5006e80",
+                        "x-real-ip": "200.165.13.111"
+                    },
+                    "params": {},
+                    "query": {},
+                    "body": {
+                        "quotation_id": "25e59a8c-9f8c-4b78-a2f8-056aaf03fea7",
+                        "name": "Material da Alfa Construção",
+                        "client_name": "Alfa Construcao",
+                        "client_email": "joabeantonio@gmail.com",
+                        "internal_code": "001/2026",
+                        "items": [
+                            {
+                                "product": "Para para impressão A4",
+                                "unit": "pct",
+                                "quantity": "30.00",
+                                "price": "25.90",
+                                "store": "OceanoB2B",
+                                "link": "https://www.google.com/search?ibp=oshop&q=Para+para+impress%C3%A3o+A4&prds=localAnnotatedOfferId:1,catalogid:15275015106364195839,pvo:2,pvt:hg,rds:PC_6027158597472037202%7CPROD_PC_6027158597472037202&gl=br&udm=28&pvorigin=2"
+                            },
+                            {
+                                "product": "Caneta esferográfica azul",
+                                "unit": "un",
+                                "quantity": "100.00",
+                                "price": "0.69",
+                                "store": "Gimba.com",
+                                "link": "https://www.google.com/search?ibp=oshop&q=Caneta+esferogr%C3%A1fica+azul&prds=localAnnotatedOfferId:1,catalogid:7265139821022939072,pvo:2,pvt:hg,rds:PC_6027158597472037202%7CPROD_PC_6027158597472037202&gl=br&udm=28&pvorigin=2"
+                            },
+                            {
+                                "product": "Caneta esferográfica vermelha",
+                                "unit": "un",
+                                "quantity": "100.00",
+                                "price": "0.58",
+                                "store": "bem mais imports",
+                                "link": "https://www.google.com/search?ibp=oshop&q=Caneta+esferogr%C3%A1fica+vermelha&prds=localAnnotatedOfferId:1,catalogid:10499164298593137046,pvo:2,pvt:hg,rds:PC_6027158597472037202%7CPROD_PC_6027158597472037202&gl=br&udm=28&pvorigin=2"
+                            },
+                            {
+                                "product": "Caneta esferográfica preta",
+                                "unit": "un",
+                                "quantity": "100.00",
+                                "price": "0.54",
+                                "store": "Rymo da Amazônia",
+                                "link": "https://www.google.com/search?ibp=oshop&q=Caneta+esferogr%C3%A1fica+preta&prds=localAnnotatedOfferId:1,catalogid:13709711728215136248,pvo:2,pvt:hg,rds:PC_6027158597472037202%7CPROD_PC_6027158597472037202&gl=br&udm=28&pvorigin=2"
+                            }
+                        ]
+                    },
+                    "webhookUrl": "https://n8n-n8n.yg64ke.easypanel.host/webhook/enviar-cotacao",
+                    "executionMode": "production"
+                }
+            }
+        ]
+    },
+    "connections": {
+        "Criar Planilha": {
+            "main": [
+                [
+                    {
+                        "node": "Gravar Itens",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Gravar Itens": {
+            "main": [
+                [
+                    {
+                        "node": "Mover para Pasta",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Normalizar Dados",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Normalizar Dados": {
+            "main": [
+                [
+                    {
+                        "node": "Criar Planilha",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Mover para Pasta": {
+            "main": [
+                [
+                    {
+                        "node": "Google Drive Share",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Google Drive Share": {
+            "main": [
+                [
+                    {
+                        "node": "Gmail",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "versionId": "256d6750-5473-433c-a423-f560fac15071",
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "0435f3002e081a7fea4f6b9d9fb69e6d66a9ce283c409f889ee2eb8cc504ae5a"
+    },
+    "id": "lJCDVNy4luo7dtop",
+    "tags": []
+}

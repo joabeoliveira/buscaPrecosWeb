@@ -16,7 +16,7 @@ export class BatchProcessor {
     this.requestManager = new ParallelRequestManager(3); // 3 concurrent to be safer
   }
 
-  async startJob(listId: string, itemId?: string): Promise<string> {
+  async startJob(listId: string, itemId?: string): Promise<{ jobId: string, processFunction: () => Promise<void> }> {
     const items = itemId 
       ? await this.listRepository.getItemById(itemId)
       : await this.listRepository.getItems(listId);
@@ -30,13 +30,17 @@ export class BatchProcessor {
     console.log(`[BatchProcessor] Starting job for list ${listId} (Individual: ${!!itemId}) with ${itemsList.length} items`);
     const jobId = await this.jobRepository.create(listId, itemsList.length);
 
-    // Process in background (non-blocking)
-    // In serverless, we process synchronously but don't await for the response path
-    this.process(jobId, listId, itemsList).catch((err) => {
-      console.error(`[BatchProcessor] Unhandled error in job ${jobId}:`, err);
-    });
+    // Instead of firing and forgetting internally which breaks Serverless,
+    // we return the function so the API route can use Next.js `after()` or `await`
+    const processFunction = async () => {
+      try {
+        await this.process(jobId, listId, itemsList);
+      } catch (err) {
+        console.error(`[BatchProcessor] Unhandled error in job ${jobId}:`, err);
+      }
+    };
 
-    return jobId;
+    return { jobId, processFunction };
   }
 
   private async process(jobId: string, listId: string, items: string[]) {
