@@ -156,7 +156,7 @@ export class ListRepository {
     return result.rows[0].original_query;
   }
 
-  async updateItemResult(listId: string, query: string, data: { status: string, results: any[] }): Promise<void> {
+  async updateItemResult(listId: string, query: string, data: { status: string, results: any[], canonical_product_id?: string | undefined }): Promise<void> {
     // Process results to find best item (optional, but keep it consistent with what might be expected)
     const bestItem = data.results.length > 0 ? data.results[0] : null;
     
@@ -164,9 +164,10 @@ export class ListRepository {
       `UPDATE shopping_list_items 
        SET status = $1, 
            raw_response = $2, 
-           searched_at = NOW()
+           searched_at = NOW(),
+           canonical_product_id = COALESCE($5, canonical_product_id)
        WHERE shopping_list_id = $3 AND original_query = $4`,
-      [data.status, JSON.stringify(data.results), listId, query]
+      [data.status, JSON.stringify(data.results), listId, query, data.canonical_product_id]
     );
 
     // If all items in the list are processed, update list status to 'completed'
