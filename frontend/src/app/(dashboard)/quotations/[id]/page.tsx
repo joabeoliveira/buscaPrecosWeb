@@ -366,6 +366,7 @@ export default function ListResultsPage() {
            <RefreshCw size={48} className="animate-spin text-slate-200" />
            <p className="text-slate-500">Preparando painel...</p>
         </div>
+      ) : displayResults.length > 0 ? (
         <ResultsTable 
           results={displayResults} 
           onAction={fetchResults} 
