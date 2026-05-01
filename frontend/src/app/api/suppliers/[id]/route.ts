@@ -1,0 +1,41 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { SupplierRepository } from '@/app/api/repositories/SupplierRepository';
+import { z } from 'zod';
+
+const supplierRepo = new SupplierRepository();
+
+const SupplierUpdateSchema = z.object({
+  name: z.string().min(2).optional(),
+  url: z.string().url('URL inválida').optional(),
+  category: z.string().min(1).optional(),
+  is_active: z.boolean().optional(),
+  free_shipping: z.boolean().optional(),
+  min_free_shipping: z.number().nullable().optional(),
+  score: z.number().int().min(1).max(10).optional(),
+  avg_delivery_days: z.number().int().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const body = await request.json();
+    const data = SupplierUpdateSchema.parse(body);
+    const supplier = await supplierRepo.update(params.id, data);
+    if (!supplier) return NextResponse.json({ error: 'Parceiro não encontrado' }, { status: 404 });
+    return NextResponse.json(supplier);
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ code: 'VALIDATION_ERROR', details: error.issues }, { status: 400 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await supplierRepo.delete(params.id);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

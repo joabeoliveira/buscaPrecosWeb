@@ -8,7 +8,7 @@ export const SearchBatchSchema = z.object({
   listId: z.string().uuid(),
   itemId: z.string().uuid().optional(),
   providers: z.array(z.string()).optional(),
-  targetPartners: z.array(z.string()).optional(),
+  supplierId: z.string().uuid().optional(),
 });
 
 export const CreateListSchema = z.object({

@@ -10,7 +10,7 @@ export interface SearchJobData {
   listId: string;
   items: string[];
   activeProviders?: string[];
-  targetPartners?: string[];
+  supplierId?: string;
 }
 
 export async function enqueueSearchJob(data: SearchJobData) {

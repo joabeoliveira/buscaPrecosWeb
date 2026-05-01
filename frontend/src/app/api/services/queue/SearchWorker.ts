@@ -7,6 +7,7 @@ import { JobRepository } from '../../repositories/JobRepository';
 import { CanonicalProductRepository } from '../../repositories/CanonicalProductRepository';
 import { PriceHistoryRepository } from '../../repositories/PriceHistoryRepository';
 import { AlertRepository } from '../../repositories/AlertRepository';
+import { SupplierRepository } from '../../repositories/SupplierRepository';
 import { ScoreEngine } from '../ScoreEngine';
 import { WebhookService } from '../WebhookService';
 
@@ -30,14 +31,24 @@ const requestManager = new ParallelRequestManager(3);
 const canonicalProductRepo = new CanonicalProductRepository();
 const priceHistoryRepo = new PriceHistoryRepository();
 const alertRepo = new AlertRepository();
+const supplierRepo = new SupplierRepository();
 const webhookService = new WebhookService();
 
 export const searchWorker = new Worker<SearchJobData>(
   SEARCH_QUEUE_NAME,
   async (job: Job<SearchJobData>) => {
-    const { jobId, listId, items, activeProviders, targetPartners } = job.data;
+    const { jobId, listId, items, activeProviders, supplierId } = job.data;
     
     console.log(`[SearchWorker] 🚀 Started processing job ${jobId} for list ${listId}`);
+
+    // Lookup the supplier from DB if supplierId was provided
+    let supplier: import('../../repositories/SupplierRepository').Supplier | null = null;
+    if (supplierId) {
+      supplier = await supplierRepo.getById(supplierId);
+      if (supplier) {
+        console.log(`[SearchWorker] Using supplier: ${supplier.name} (${supplier.url})`);
+      }
+    }
     
     let processedCount = 0;
     let successCount = 0;
@@ -46,7 +57,7 @@ export const searchWorker = new Worker<SearchJobData>(
     try {
       await requestManager.processBatch(
         items,
-        (query) => providerRegistry.searchProduct(query, { activeProviders, targetPartners, listId }),
+        (query) => providerRegistry.searchProduct(query, { activeProviders, supplier, listId }),
         async (query, result) => {
           let canonicalProductId: string | undefined;
 

@@ -15,7 +15,7 @@ export class BatchProcessor {
     this.jobRepository = new JobRepository();
   }
 
-  async startJob(listId: string, itemId?: string, providers?: string[], targetPartners?: string[]): Promise<{ jobId: string, processFunction: () => Promise<void> }> {
+  async startJob(listId: string, itemId?: string, providers?: string[], supplierId?: string): Promise<{ jobId: string, processFunction: () => Promise<void> }> {
     const items = itemId 
       ? await this.listRepository.getItemById(itemId)
       : await this.listRepository.getItems(listId);
@@ -26,7 +26,7 @@ export class BatchProcessor {
       throw new Error('No items to process');
     }
 
-    console.log(`[BatchProcessor] Enqueueing job for list ${listId} (Individual: ${!!itemId}) with ${itemsList.length} items to BullMQ. Providers: ${providers?.join(', ') || 'default'}`);
+    console.log(`[BatchProcessor] Enqueueing job for list ${listId} (Individual: ${!!itemId}) with ${itemsList.length} items to BullMQ. Providers: ${providers?.join(', ') || 'default'}${supplierId ? ` | Supplier: ${supplierId}` : ''}`);
     const jobId = await this.jobRepository.create(listId, itemsList.length);
 
     // Enqueue to BullMQ
@@ -36,7 +36,7 @@ export class BatchProcessor {
       listId,
       items: itemsList,
       activeProviders: providers,
-      targetPartners: targetPartners
+      supplierId: supplierId
     });
 
     // Provide a dummy processFunction for backwards compatibility with the route

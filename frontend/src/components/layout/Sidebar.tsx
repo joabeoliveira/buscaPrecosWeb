@@ -13,7 +13,8 @@ import {
   LogOut,
   Users,
   Search,
-  UserCog
+  UserCog,
+  Handshake
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AlertDropdown from './AlertDropdown';
@@ -54,6 +55,7 @@ export default function Sidebar() {
     { href: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard', roles: ['admin', 'helper', 'auditor', 'user'] },
     { href: '/quotations/new', icon: <PlusCircle size={20} />, label: 'Nova Cotação', roles: ['admin', 'helper'] },
     { href: '/clients', icon: <Users size={20} />, label: 'Clientes', roles: ['admin', 'helper', 'auditor'] },
+    { href: '/suppliers', icon: <Handshake size={20} />, label: 'Parceiros', roles: ['admin', 'helper', 'user'] },
     { href: '/users', icon: <UserCog size={20} />, label: 'Equipe', roles: ['admin'] },
     { href: '/reports', icon: <FileText size={20} />, label: 'Relatórios', roles: ['admin', 'helper', 'auditor'] },
     { href: '/audit', icon: <ShieldCheck size={20} />, label: 'Auditoria', roles: ['admin'] },

@@ -12,10 +12,10 @@ export class N8nScraperProvider implements PriceProvider {
     return !!this.webhookUrl;
   }
 
-  async searchProduct(query: string, options: { forceRefresh?: boolean, listId?: string, targetPartners?: string[] } = {}): Promise<PriceResult> {
+  async searchProduct(query: string, options: { forceRefresh?: boolean, listId?: string, supplier?: { id: string; name: string; url: string; category: string } | null } = {}): Promise<PriceResult> {
     const normalized = normalizeQuery(query);
-    const partnersKey = (options.targetPartners || []).sort().join(',');
-    const cacheKey = `search:v3:${normalized}:n8n:${partnersKey}`;
+    const supplierKey = options.supplier?.id || 'any';
+    const cacheKey = `search:v4:${normalized}:n8n:${supplierKey}`;
 
     if (!options.forceRefresh) {
       try {
@@ -30,17 +30,17 @@ export class N8nScraperProvider implements PriceProvider {
     }
 
     try {
-      const targetPartners = options.targetPartners && options.targetPartners.length > 0
-        ? options.targetPartners
-        : ['todos']; // se nenhum parceiro selecionado, passa 'todos' para o n8n decidir
+      const supplierInfo = options.supplier
+        ? { id: options.supplier.id, name: options.supplier.name, url: options.supplier.url, category: options.supplier.category }
+        : null;
 
-      console.log(`[N8nScraperProvider] Triggering webhook for: "${query}" | Partners: ${targetPartners.join(', ')}`);
+      console.log(`[N8nScraperProvider] Triggering webhook for: "${query}" | Supplier: ${supplierInfo?.name || 'any'}`);
       const response = await axios.post(
         this.webhookUrl,
         {
           query: query,
           listId: options.listId || null,
-          targetPartners: targetPartners,
+          supplier: supplierInfo,
         },
         {
           timeout: 25000,

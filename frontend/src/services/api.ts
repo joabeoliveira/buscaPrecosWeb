@@ -27,6 +27,19 @@ export interface ListItemInput {
   quantity?: number;
 }
 
+export interface Supplier {
+  id: string;
+  name: string;
+  url: string;
+  category: string;
+  is_active: boolean;
+  free_shipping: boolean;
+  min_free_shipping: number | null;
+  score: number;
+  avg_delivery_days: number | null;
+  notes: string | null;
+}
+
 export interface ListResult {
   id: string;
   shopping_list_id: string;
@@ -80,8 +93,8 @@ export const shoppingApi = {
     return response.data;
   },
 
-  startBatchSearch: async (listId: string, itemId?: string, providers?: string[], targetPartners?: string[]) => {
-    const response = await api.post('/search/batch', { listId, itemId, providers, targetPartners });
+  startBatchSearch: async (listId: string, itemId?: string, providers?: string[], supplierId?: string) => {
+    const response = await api.post('/search/batch', { listId, itemId, providers, supplierId });
     return response.data;
   },
 
@@ -141,5 +154,24 @@ export const shoppingApi = {
   createClient: async (data: { name: string; document?: string; email?: string; phone?: string }) => {
     const response = await api.post('/clients', data);
     return response.data;
+  },
+
+  listSuppliers: async (): Promise<Supplier[]> => {
+    const response = await api.get('/suppliers');
+    return response.data;
+  },
+
+  createSupplier: async (data: Omit<Supplier, 'id'>) => {
+    const response = await api.post('/suppliers', data);
+    return response.data;
+  },
+
+  updateSupplier: async (id: string, data: Partial<Supplier>) => {
+    const response = await api.put(`/suppliers/${id}`, data);
+    return response.data;
+  },
+
+  deleteSupplier: async (id: string) => {
+    await api.delete(`/suppliers/${id}`);
   },
 };
