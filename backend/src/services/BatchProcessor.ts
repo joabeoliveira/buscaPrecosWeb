@@ -5,6 +5,7 @@ import { JobRepository } from '../repositories/JobRepository.js';
 import { CanonicalProductRepository } from '../repositories/CanonicalProductRepository.js';
 import { PriceHistoryRepository } from '../repositories/PriceHistoryRepository.js';
 import { normalizeQuery } from '../utils/helpers.js';
+import { ScoreEngine } from './ScoreEngine.js';
 
 export class BatchProcessor {
   private serperService: SerperService;
@@ -86,12 +87,38 @@ export class BatchProcessor {
           }
 
           try {
-            // Update database for this specific item with ALL results and canonical ID
-            await this.listRepository.updateItemResult(listId, query, {
-              status: result.status,
-              results: result.results,
-              canonical_product_id: canonicalProductId
-            });
+              // 3. Calculate Score and Auto-Select
+              let offerScoreValue: number | undefined;
+              let opportunityFlags: string[] | undefined;
+              let autoSelected = false;
+
+              if (result.results.length > 0) {
+                const bestOffer = result.results[0]!; // Currently assumes first is best (cheapest)
+                let stats = null;
+                
+                if (canonicalProductId) {
+                  stats = await this.priceHistoryRepo.getStats(canonicalProductId);
+                }
+                
+                const scoreResult = ScoreEngine.calculateScore(bestOffer, stats);
+                offerScoreValue = scoreResult.score;
+                opportunityFlags = scoreResult.flags;
+
+                // Auto-select if score is good enough (e.g., >= 100)
+                if (offerScoreValue >= 100) {
+                  autoSelected = true;
+                }
+              }
+
+              // Update database for this specific item with ALL results, canonical ID, and score
+              await this.listRepository.updateItemResult(listId, query, {
+                status: result.status,
+                results: result.results,
+                canonical_product_id: canonicalProductId,
+                auto_selected: autoSelected,
+                offer_score: offerScoreValue,
+                opportunity_flags: opportunityFlags
+              });
           } catch (dbErr: any) {
             console.error(`[BatchProcessor] DB update failed for "${query}":`, dbErr.message);
           }

@@ -156,19 +156,42 @@ export class ListRepository {
     return result.rows[0].original_query;
   }
 
-  async updateItemResult(listId: string, query: string, data: { status: string, results: any[], canonical_product_id?: string | undefined }): Promise<void> {
+  async updateItemResult(listId: string, query: string, data: { status: string, results: any[], canonical_product_id?: string | undefined, auto_selected?: boolean | undefined, offer_score?: number | undefined, opportunity_flags?: string[] | undefined }): Promise<void> {
     // Process results to find best item (optional, but keep it consistent with what might be expected)
     const bestItem = data.results.length > 0 ? data.results[0] : null;
     
-    await pool.query(
-      `UPDATE shopping_list_items 
+    let updateQuery = `
+       UPDATE shopping_list_items 
        SET status = $1, 
            raw_response = $2, 
            searched_at = NOW(),
            canonical_product_id = COALESCE($5, canonical_product_id)
-       WHERE shopping_list_id = $3 AND original_query = $4`,
-      [data.status, JSON.stringify(data.results), listId, query, data.canonical_product_id]
-    );
+    `;
+    const params: any[] = [data.status, JSON.stringify(data.results), listId, query, data.canonical_product_id];
+
+    if (data.auto_selected && bestItem) {
+      updateQuery += `,
+           auto_selected = true,
+           offer_score = $6,
+           opportunity_flags = $7,
+           best_price = $8,
+           best_store = $9,
+           best_product_title = $10,
+           best_product_link = $11,
+           thumbnail_url = $12
+      `;
+      params.push(data.offer_score, JSON.stringify(data.opportunity_flags || []), bestItem.price, bestItem.source, bestItem.title, bestItem.link, bestItem.thumbnail);
+    } else if (data.offer_score !== undefined) {
+      updateQuery += `,
+           offer_score = $6,
+           opportunity_flags = $7
+      `;
+      params.push(data.offer_score, JSON.stringify(data.opportunity_flags || []));
+    }
+
+    updateQuery += ` WHERE shopping_list_id = $3 AND original_query = $4`;
+
+    await pool.query(updateQuery, params);
 
     // If all items in the list are processed, update list status to 'completed'
     // This is useful for UI state

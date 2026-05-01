@@ -2,18 +2,30 @@ import { SerperService } from './SerperService';
 import { ParallelRequestManager } from './ParallelRequestManager';
 import { ListRepository } from '../repositories/ListRepository';
 import { JobRepository } from '../repositories/JobRepository';
+import { CanonicalProductRepository } from '../repositories/CanonicalProductRepository';
+import { PriceHistoryRepository } from '../repositories/PriceHistoryRepository';
+import { ScoreEngine } from './ScoreEngine';
+
+// Local helper to replace helpers.js until moved
+function normalizeQuery(query: string): string {
+  return query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
 
 export class BatchProcessor {
   private serperService: SerperService;
   private listRepository: ListRepository;
   private jobRepository: JobRepository;
   private requestManager: ParallelRequestManager;
+  private canonicalProductRepo: CanonicalProductRepository;
+  private priceHistoryRepo: PriceHistoryRepository;
 
   constructor() {
     this.serperService = new SerperService();
     this.listRepository = new ListRepository();
     this.jobRepository = new JobRepository();
     this.requestManager = new ParallelRequestManager(3); // 3 concurrent to be safer
+    this.canonicalProductRepo = new CanonicalProductRepository();
+    this.priceHistoryRepo = new PriceHistoryRepository();
   }
 
   async startJob(listId: string, itemId?: string): Promise<{ jobId: string, processFunction: () => Promise<void> }> {
@@ -55,11 +67,59 @@ export class BatchProcessor {
         items,
         (query) => this.serperService.searchProduct(query),
         async (query, result) => {
+          let canonicalProductId: string | undefined;
+
+          if (result.status === 'found') {
+            try {
+              const normalized = normalizeQuery(query);
+              const canonical = await this.canonicalProductRepo.getOrCreate(normalized);
+              canonicalProductId = canonical.id;
+
+              for (const offer of result.results) {
+                await this.priceHistoryRepo.addRecord({
+                  canonical_product_id: canonicalProductId,
+                  price: offer.price,
+                  store: offer.source,
+                  product_title: offer.title,
+                  product_link: offer.link || '',
+                  source: 'serper',
+                  shopping_list_id: listId
+                });
+              }
+            } catch (err: any) {
+              console.error(`[BatchProcessor] Error handling canonical/history for "${query}":`, err.message);
+            }
+          }
+
           try {
-            // Update database for this specific item with ALL results
+            let offerScoreValue: number | undefined;
+            let opportunityFlags: string[] | undefined;
+            let autoSelected = false;
+
+            if (result.results.length > 0) {
+              const bestOffer = result.results[0]!;
+              let stats = null;
+              
+              if (canonicalProductId) {
+                stats = await this.priceHistoryRepo.getStats(canonicalProductId);
+              }
+              
+              const scoreResult = ScoreEngine.calculateScore(bestOffer, stats);
+              offerScoreValue = scoreResult.score;
+              opportunityFlags = scoreResult.flags;
+
+              if (offerScoreValue >= 100) {
+                autoSelected = true;
+              }
+            }
+
             await this.listRepository.updateItemResult(listId, query, {
               status: result.status,
               results: result.results,
+              canonical_product_id: canonicalProductId,
+              auto_selected: autoSelected,
+              offer_score: offerScoreValue,
+              opportunity_flags: opportunityFlags
             });
           } catch (dbErr: any) {
             console.error(`[BatchProcessor] DB update failed for "${query}":`, dbErr.message);
@@ -71,7 +131,6 @@ export class BatchProcessor {
 
           console.log(`[BatchProcessor] [${processedCount}/${items.length}] "${query}" → ${result.status}${result.results.length > 0 ? ` (Found ${result.results.length} options)` : ''}`);
 
-          // Update progress every item
           try {
             await this.jobRepository.updateProgress(jobId, processedCount, items.length);
           } catch (progressErr: any) {
@@ -82,7 +141,13 @@ export class BatchProcessor {
 
       console.log(`[BatchProcessor] Job ${jobId} completed. Success: ${successCount}, Errors: ${errorCount}, Total: ${items.length}`);
 
-      // If ALL items errored, mark the job as failed
+      try {
+        await this.priceHistoryRepo.refreshStats();
+        console.log(`[BatchProcessor] Price stats view refreshed`);
+      } catch (err: any) {
+        console.error(`[BatchProcessor] Failed to refresh stats view:`, err.message);
+      }
+
       if (errorCount === items.length) {
         await this.jobRepository.fail(jobId, 'Todas as buscas falharam. Verifique a chave da API Serper.');
       }
