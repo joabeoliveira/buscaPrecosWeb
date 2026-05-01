@@ -81,7 +81,7 @@ export default function AlertDropdown() {
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute left-full top-0 z-50 ml-2 w-80 rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-petroleum-800 dark:bg-petroleum-900">
+          <div className="absolute left-full bottom-0 z-50 ml-2 w-80 rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-petroleum-800 dark:bg-petroleum-900">
             <div className="flex items-center justify-between border-b border-slate-100 p-4 dark:border-petroleum-800">
               <h3 className="font-semibold text-slate-900 dark:text-white">Notificações</h3>
               {alerts.length > 0 && (
