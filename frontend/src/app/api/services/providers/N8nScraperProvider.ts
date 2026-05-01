@@ -12,9 +12,10 @@ export class N8nScraperProvider implements PriceProvider {
     return !!this.webhookUrl;
   }
 
-  async searchProduct(query: string, options: { forceRefresh?: boolean } = {}): Promise<PriceResult> {
+  async searchProduct(query: string, options: { forceRefresh?: boolean, listId?: string, targetPartners?: string[] } = {}): Promise<PriceResult> {
     const normalized = normalizeQuery(query);
-    const cacheKey = `search:v2:${normalized}:n8n`;
+    const partnersKey = (options.targetPartners || []).sort().join(',');
+    const cacheKey = `search:v3:${normalized}:n8n:${partnersKey}`;
 
     if (!options.forceRefresh) {
       try {
@@ -29,14 +30,20 @@ export class N8nScraperProvider implements PriceProvider {
     }
 
     try {
-      console.log(`[N8nScraperProvider] Triggering webhook for: "${query}"`);
+      const targetPartners = options.targetPartners && options.targetPartners.length > 0
+        ? options.targetPartners
+        : ['todos']; // se nenhum parceiro selecionado, passa 'todos' para o n8n decidir
+
+      console.log(`[N8nScraperProvider] Triggering webhook for: "${query}" | Partners: ${targetPartners.join(', ')}`);
       const response = await axios.post(
         this.webhookUrl,
         {
           query: query,
+          listId: options.listId || null,
+          targetPartners: targetPartners,
         },
         {
-          timeout: 25000, // n8n scraping might take a bit longer
+          timeout: 25000,
         }
       );
 

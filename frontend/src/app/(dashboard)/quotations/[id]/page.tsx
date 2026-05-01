@@ -22,7 +22,8 @@ export default function ListResultsPage() {
   const [loading, setLoading] = useState(true);
   const [isStartingSearch, setIsStartingSearch] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'approved'>('all');
-  const [activeProviders, setActiveProviders] = useState<string[]>(['n8n_scraper', 'mercadolivre', 'serper']);
+  const [activeProviders, setActiveProviders] = useState<string[]>(['n8n_scraper', 'serper']);
+  const [targetPartners, setTargetPartners] = useState<string[]>(['kalunga', 'kabum', 'gimba']);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSendingToN8n, setIsSendingToN8n] = useState(false);
@@ -82,7 +83,8 @@ export default function ListResultsPage() {
   const startBatchSearch = async () => {
     setIsStartingSearch(true);
     try {
-      const { jobId } = await shoppingApi.startBatchSearch(listId, undefined, activeProviders);
+      const partners = activeProviders.includes('n8n_scraper') ? targetPartners : undefined;
+      const { jobId } = await shoppingApi.startBatchSearch(listId, undefined, activeProviders, partners);
       await pollStatus(jobId);
     } catch (error) {
       console.error('Failed to start search:', error);
@@ -124,8 +126,9 @@ export default function ListResultsPage() {
     
     setIsStartingSearch(true);
     try {
+      const partners = activeProviders.includes('n8n_scraper') ? targetPartners : undefined;
       const promises = failedResults.map(item => 
-        shoppingApi.startBatchSearch(listId, item.id, activeProviders)
+        shoppingApi.startBatchSearch(listId, item.id, activeProviders, partners)
       );
       const retryResults = await Promise.all(promises);
       if (retryResults[0]) {
@@ -285,40 +288,92 @@ export default function ListResultsPage() {
       </div>
 
       {!hasStartedAnySearch && !loading && (
-        <div className="mb-8 rounded-2xl bg-petroleum-50 p-8 border border-petroleum-100 dark:bg-petroleum-900/20 dark:border-petroleum-800 text-center">
-            <h2 className="text-xl font-bold text-petroleum-900 dark:text-petroleum-100 mb-2">Pronto para iniciar a cotação?</h2>
-            <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-2xl mx-auto">
-              Sua lista foi criada com sucesso. Configure abaixo a ordem de busca e clique para buscar preços em tempo real.
-            </p>
+        <div className="mb-8 rounded-2xl bg-petroleum-50 p-8 border border-petroleum-100 dark:bg-petroleum-900/20 dark:border-petroleum-800">
+          <h2 className="text-xl font-bold text-petroleum-900 dark:text-petroleum-100 mb-1">Pronto para iniciar a cotação?</h2>
+          <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm">
+            Selecione os canais de busca e os parceiros desejados antes de iniciar.
+          </p>
 
-            <div className="flex flex-wrap justify-center gap-4 mb-8">
-              {[
-                { id: 'n8n_scraper', label: 'Fornecedores Parceiros (n8n)' },
-                { id: 'mercadolivre', label: 'Mercado Livre' },
-                { id: 'serper', label: 'Busca Global (Google)' }
-              ].map(provider => (
-                <label key={provider.id} className="flex items-center gap-2 cursor-pointer bg-white dark:bg-petroleum-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-petroleum-700 shadow-sm transition-colors hover:border-petroleum-500">
-                  <input 
-                    type="checkbox" 
-                    checked={activeProviders.includes(provider.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setActiveProviders(prev => [...prev, provider.id]);
-                      } else {
-                        setActiveProviders(prev => prev.filter(id => id !== provider.id));
-                      }
-                    }}
-                    className="rounded border-slate-300 text-petroleum-600 focus:ring-petroleum-500"
-                  />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{provider.label}</span>
-                </label>
-              ))}
+          <div className="grid gap-4 lg:grid-cols-2 mb-8">
+            {/* Coluna 1: Seleção de Canais */}
+            <div className="rounded-xl border border-slate-200 dark:border-petroleum-700 bg-white dark:bg-petroleum-900/40 p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-petroleum-400 mb-3">Canais de Busca</p>
+              <div className="space-y-2">
+                {[
+                  { id: 'n8n_scraper', label: 'Fornecedores Parceiros (n8n)', emoji: '🤝' },
+                  { id: 'serper', label: 'Busca Global (Google)', emoji: '🌎' }
+                ].map(provider => (
+                  <label key={provider.id} className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-petroleum-800 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={activeProviders.includes(provider.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setActiveProviders(prev => [...prev, provider.id]);
+                        } else {
+                          setActiveProviders(prev => prev.filter(id => id !== provider.id));
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-slate-300 text-petroleum-600 focus:ring-petroleum-500"
+                    />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {provider.emoji} {provider.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
 
+            {/* Coluna 2: Parceiros — visível somente se n8n_scraper selecionado */}
+            <div className={`rounded-xl border p-4 transition-all ${
+              activeProviders.includes('n8n_scraper')
+                ? 'border-petroleum-300 dark:border-petroleum-600 bg-white dark:bg-petroleum-900/40'
+                : 'border-slate-100 dark:border-petroleum-800/50 bg-slate-50/50 dark:bg-petroleum-900/10 opacity-40 pointer-events-none'
+            }`}>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-petroleum-400 mb-1">Parceiros para Scraping</p>
+              <p className="text-[10px] text-slate-400 mb-3">O n8n receberá exatamente quais sites raspar.</p>
+              <div className="space-y-2">
+                {[
+                  { id: 'kalunga', label: 'Kalunga', category: 'Papelaria & Informática' },
+                  { id: 'kabum', label: 'KaBuM!', category: 'Informática & Eletrônicos' },
+                  { id: 'gimba', label: 'Gimba', category: 'Atacado Geral' },
+                  { id: 'toner-facil', label: 'Toner Fácil', category: 'Informática & Escritório' },
+                  { id: 'multilaser', label: 'Multilaser', category: 'Eletrônicos & Acessórios' },
+                ].map(partner => (
+                  <label key={partner.id} className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-petroleum-800 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={targetPartners.includes(partner.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setTargetPartners(prev => [...prev, partner.id]);
+                        } else {
+                          setTargetPartners(prev => prev.filter(id => id !== partner.id));
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-slate-300 text-petroleum-600 focus:ring-petroleum-500"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{partner.label}</span>
+                      <span className="ml-2 text-[10px] text-slate-400">{partner.category}</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center">
             <Button size="lg" onClick={startBatchSearch} isLoading={isStartingSearch} className="gap-2 px-8 py-6 text-lg shadow-xl shadow-petroleum-200 dark:shadow-none bg-petroleum-900 text-white dark:bg-petroleum-500">
-                <Search size={24} />
-                Iniciar Pesquisa de Preços
+              <Search size={24} />
+              Iniciar Pesquisa de Preços
             </Button>
+            {activeProviders.includes('n8n_scraper') && targetPartners.length > 0 && (
+              <p className="mt-2 text-xs text-slate-400">
+                Parceiros selecionados: {targetPartners.join(', ')}
+              </p>
+            )}
+          </div>
         </div>
       )}
 

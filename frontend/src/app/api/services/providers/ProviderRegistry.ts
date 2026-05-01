@@ -9,7 +9,7 @@ export class ProviderRegistry {
     this.providers.push(provider);
   }
 
-  async searchProduct(query: string, options?: { forceRefresh?: boolean, activeProviders?: string[] }): Promise<PriceResult> {
+  async searchProduct(query: string, options?: { forceRefresh?: boolean, activeProviders?: string[], targetPartners?: string[], listId?: string }): Promise<PriceResult> {
     
     // Sort and filter providers based on activeProviders preference if provided
     let providersToRun = this.providers;

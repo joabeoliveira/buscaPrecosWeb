@@ -12,7 +12,6 @@ import { WebhookService } from '../WebhookService';
 
 import { ProviderRegistry } from '../providers/ProviderRegistry';
 import { SerperProvider } from '../providers/SerperProvider';
-import { MercadoLivreProvider } from '../providers/MercadoLivreProvider';
 import { N8nScraperProvider } from '../providers/N8nScraperProvider';
 
 // Helpers
@@ -23,7 +22,6 @@ function normalizeQuery(query: string): string {
 // Instantiate singletons for the worker
 const providerRegistry = new ProviderRegistry();
 providerRegistry.register(new N8nScraperProvider());
-providerRegistry.register(new MercadoLivreProvider());
 providerRegistry.register(new SerperProvider());
 
 const listRepository = new ListRepository();
@@ -37,7 +35,7 @@ const webhookService = new WebhookService();
 export const searchWorker = new Worker<SearchJobData>(
   SEARCH_QUEUE_NAME,
   async (job: Job<SearchJobData>) => {
-    const { jobId, listId, items } = job.data;
+    const { jobId, listId, items, activeProviders, targetPartners } = job.data;
     
     console.log(`[SearchWorker] 🚀 Started processing job ${jobId} for list ${listId}`);
     
@@ -48,7 +46,7 @@ export const searchWorker = new Worker<SearchJobData>(
     try {
       await requestManager.processBatch(
         items,
-        (query) => providerRegistry.searchProduct(query, { activeProviders: job.data.activeProviders }),
+        (query) => providerRegistry.searchProduct(query, { activeProviders, targetPartners, listId }),
         async (query, result) => {
           let canonicalProductId: string | undefined;
 

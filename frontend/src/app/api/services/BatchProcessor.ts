@@ -15,7 +15,7 @@ export class BatchProcessor {
     this.jobRepository = new JobRepository();
   }
 
-  async startJob(listId: string, itemId?: string, providers?: string[]): Promise<{ jobId: string, processFunction: () => Promise<void> }> {
+  async startJob(listId: string, itemId?: string, providers?: string[], targetPartners?: string[]): Promise<{ jobId: string, processFunction: () => Promise<void> }> {
     const items = itemId 
       ? await this.listRepository.getItemById(itemId)
       : await this.listRepository.getItems(listId);
@@ -35,7 +35,8 @@ export class BatchProcessor {
       jobId,
       listId,
       items: itemsList,
-      activeProviders: providers
+      activeProviders: providers,
+      targetPartners: targetPartners
     });
 
     // Provide a dummy processFunction for backwards compatibility with the route
