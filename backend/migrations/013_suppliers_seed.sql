@@ -1,5 +1,8 @@
 -- Seed: Parceiros iniciais por categoria (baseado em fornecedores reais do mercado brasileiro)
--- Executar apenas uma vez para popular o banco de dados
+-- IMPORTANTE: Executar via docker cp + psql -f para preservar UTF-8 corretamente:
+--   docker cp backend/migrations/013_suppliers_seed.sql <container>:/tmp/seed.sql
+--   docker exec <container> psql -U dev -d BuscaPrecosWeb -f /tmp/seed.sql
+-- Nunca usar Get-Content | docker exec pois o PowerShell corrompe acentos.
 
 INSERT INTO suppliers (name, url, category, is_active, free_shipping, min_free_shipping, score, avg_delivery_days, notes) VALUES
 
