@@ -1,39 +1,36 @@
 # Project Status - BuscaPrecosWeb
 
-Data de referencia: 2026-05-01
+Data de referência: 2026-05-01
 Owner: Joabe Oliveira
 
 ## Objetivo do arquivo
-Registrar o que foi feito no dia, o status atual do projeto e os proximos passos para execucao do MVP sem perder contexto.
+Registrar o que foi feito no dia, o status atual do projeto e os próximos passos para execução do MVP sem perder contexto.
 
 ## Status geral
-- Fase atual: EVOLUÇÃO B2B CONCLUÍDA (Inteligência Artificial e Filas)
-- Saude do projeto: Verde (Deploy pendente para VPS devido a serviços de background / Redis)
-- Risco principal no momento: Validar Jaccard Similarity (threshold 0.15) em ambiente real com dezenas de itens técnicos.
+- Fase atual: EVOLUÇÃO B2B CONCLUÍDA & MÓDULO DE PARCEIROS INTEGRADO
+- Saúde do projeto: Verde (Tudo rodando localmente de forma excelente)
+- Risco principal no momento: Calibrar os seletores de scraping no n8n para parceiros específicos.
 
-## O que foi concluido hoje (2026-05-01)
-- **Evolução do Motor de Decisão (Fases 1 a 6)**:
-  - **Fase 1**: Implementado `CanonicalProductRepository` e view estatística `price_stats` para acompanhar `media_preco` e `volatilidade`.
-  - **Fase 2**: Criado o `ScoreEngine`. O sistema avalia o histórico, pontua ofertas excelentes (`offer_score >= 100`) e realiza o *auto-select* no carrinho.
-  - **Fase 3**: Desacoplado do Vercel Serverless. Adicionado **BullMQ** e Redis para processamento de filas puramente assíncrono (Worker isolado do HTTP).
-  - **Fase 4**: Sistema de alertas globais implementado. Webhooks automáticos (n8n) e notificações na UI em tempo real com `AlertDropdown.tsx`.
-  - **Fase 5**: Padronizado o motor `Multi-Provider` com um `ProviderRegistry` de fallback (Serper nativo desacoplado).
-  - **Fase 6**: Aplicado o modelo de Similaridade de Jaccard (`TextMatcher.ts`) para exclusão de "lixo" e "falsos positivos" nas pesquisas da Serper.
+## O que foi concluído hoje (2026-05-01)
+- **Correção de Banco e Encoding (Normalização UTF-8)**:
+  - Corrigido o encoding de todas as 14 categorias e nomes de parceiros via script SQL direto no Postgres (`docker cp` + `psql -f`), garantindo compatibilidade 100% com caracteres especiais do Brasil.
+- **Módulo de Parceiros (Suppliers)**:
+  - Criação da tabela `suppliers`, criação do repositório, rotas da API e interface CRUD completa.
+  - Implementada a busca direta e síncrona via endpoint `/api/suppliers/search` que se comunica diretamente com o webhook do n8n sem depender de filas (espera até 25 segundos pela resposta).
+  - Atualizado o componente `ResultsTable.tsx` e a tela de cotações para permitir a busca em parceiros selecionados.
+  - Criado o plano e arquitetura de integração do n8n para realizar scraping dinâmico e normalização de dados.
 
 ## Em andamento
 - Homologação de Qualidade (QA) com a equipe usando o novo `QA_CHECKLIST.md`.
-- Planejamento para mover a aplicação de testes Serverless (Vercel) para um VPS definitivo rodando Docker + PM2 (para suportar o Worker Node.js contínuo).
+- Construção de novos fluxos de roteamento no n8n para parceiros de nicho da Inforé.
 
-## Pendencias criticas
-- [x] Migrar para filas Assíncronas usando BullMQ.
-- [x] Criar sistema de regras (Score e Jaccard) para auto-selecionar os produtos corretos.
-- [x] Consertar bug de inicialização do Worker (problema do carregamento .env com Redis corrigido).
+## Pendências críticas
 - [ ] Planejar deploy da stack completa (Frontend, Backend Next, Worker, Postgres, Redis) na VPS de produção.
 
-## Proximos passos (ordem sugerida)
+## Próximos passos (ordem sugerida)
 1. Concluir os testes do `QA_CHECKLIST.md` rodando listas de compras reais.
-2. Migrar os recursos da Vercel para uma VPS (DigitalOcean / Hetzner), garantindo que o Worker do BullMQ não "durma".
-3. Adicionar novos provedores (Mercado Livre, Buscapé) preenchendo a interface genérica `PriceProvider`.
+2. Configurar o n8n com o novo nó Code que decide a API de scraping e roteia o payload dinamicamente.
+3. Migrar os recursos para uma VPS (DigitalOcean / Hetzner) com Docker.
 
 ## Checklist por fase (Evolução B2B)
 - [x] FASE 1 - Normalização de Nomes e Histórico de Preços
@@ -42,8 +39,9 @@ Registrar o que foi feito no dia, o status atual do projeto e os proximos passos
 - [x] FASE 4 - Central de Alertas e Despacho via Webhooks (n8n)
 - [x] FASE 5 - Motor Multi-Provedores (Registro Dinâmico)
 - [x] FASE 6 - Exclusão de Ruído e Matching Avançado de Produtos
+- [x] EXTRA - Módulo Completo de Parceiros com Busca Síncrona
 
-## Registro rapido diario
+## Registro rápido diário
 ### 2026-05-01
-- Feito: Implementado plano mestre de evolução B2B. Finalizado `AlertDropdown` na UI, fix da porta do Redis no Worker e inserido o filtro Jaccard antes de registrar o preço base. QA Checklist criado no root do projeto.
-- Proximo dia: Executar testes de qualidade em listas de compra com nomes misturados (lixo vs nome real) para calibrar a tolerância de IA.
+- **Manhã**: Implementado plano mestre de evolução B2B. Finalizado `AlertDropdown` na UI, fix da porta do Redis no Worker e inserido o filtro Jaccard.
+- **Noite**: Correção completa de UTF-8 do banco de dados, criação de CRUD de parceiros e lançamento do fluxo de busca direta e síncrona com n8n Webhook.
