@@ -22,6 +22,7 @@ export default function ListResultsPage() {
   const [loading, setLoading] = useState(true);
   const [isStartingSearch, setIsStartingSearch] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'approved'>('all');
+  const [activeProviders, setActiveProviders] = useState<string[]>(['n8n_scraper', 'mercadolivre', 'serper']);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSendingToN8n, setIsSendingToN8n] = useState(false);
@@ -81,7 +82,7 @@ export default function ListResultsPage() {
   const startBatchSearch = async () => {
     setIsStartingSearch(true);
     try {
-      const { jobId } = await shoppingApi.startBatchSearch(listId);
+      const { jobId } = await shoppingApi.startBatchSearch(listId, undefined, activeProviders);
       await pollStatus(jobId);
     } catch (error) {
       console.error('Failed to start search:', error);
@@ -124,7 +125,7 @@ export default function ListResultsPage() {
     setIsStartingSearch(true);
     try {
       const promises = failedResults.map(item => 
-        shoppingApi.startBatchSearch(listId, item.id)
+        shoppingApi.startBatchSearch(listId, item.id, activeProviders)
       );
       const retryResults = await Promise.all(promises);
       if (retryResults[0]) {
@@ -287,11 +288,36 @@ export default function ListResultsPage() {
         <div className="mb-8 rounded-2xl bg-petroleum-50 p-8 border border-petroleum-100 dark:bg-petroleum-900/20 dark:border-petroleum-800 text-center">
             <h2 className="text-xl font-bold text-petroleum-900 dark:text-petroleum-100 mb-2">Pronto para iniciar a cotação?</h2>
             <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-2xl mx-auto">
-              Sua lista foi criada com sucesso. Clique no botão abaixo para buscar preços em tempo real para todos os itens ou use o botão de cotação individual na tabela.
+              Sua lista foi criada com sucesso. Configure abaixo a ordem de busca e clique para buscar preços em tempo real.
             </p>
+
+            <div className="flex flex-wrap justify-center gap-4 mb-8">
+              {[
+                { id: 'n8n_scraper', label: 'Fornecedores Parceiros (n8n)' },
+                { id: 'mercadolivre', label: 'Mercado Livre' },
+                { id: 'serper', label: 'Busca Global (Google)' }
+              ].map(provider => (
+                <label key={provider.id} className="flex items-center gap-2 cursor-pointer bg-white dark:bg-petroleum-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-petroleum-700 shadow-sm transition-colors hover:border-petroleum-500">
+                  <input 
+                    type="checkbox" 
+                    checked={activeProviders.includes(provider.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setActiveProviders(prev => [...prev, provider.id]);
+                      } else {
+                        setActiveProviders(prev => prev.filter(id => id !== provider.id));
+                      }
+                    }}
+                    className="rounded border-slate-300 text-petroleum-600 focus:ring-petroleum-500"
+                  />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{provider.label}</span>
+                </label>
+              ))}
+            </div>
+
             <Button size="lg" onClick={startBatchSearch} isLoading={isStartingSearch} className="gap-2 px-8 py-6 text-lg shadow-xl shadow-petroleum-200 dark:shadow-none bg-petroleum-900 text-white dark:bg-petroleum-500">
                 <Search size={24} />
-                Iniciar Pesquisa de Preços (Todos)
+                Iniciar Pesquisa de Preços
             </Button>
         </div>
       )}

@@ -80,8 +80,8 @@ export const shoppingApi = {
     return response.data;
   },
 
-  startBatchSearch: async (listId: string, itemId?: string) => {
-    const response = await api.post('/search/batch', { listId, itemId });
+  startBatchSearch: async (listId: string, itemId?: string, providers?: string[]) => {
+    const response = await api.post('/search/batch', { listId, itemId, providers });
     return response.data;
   },
 

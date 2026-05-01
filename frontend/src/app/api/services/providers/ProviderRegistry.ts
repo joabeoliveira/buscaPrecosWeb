@@ -9,9 +9,34 @@ export class ProviderRegistry {
     this.providers.push(provider);
   }
 
-  async searchProduct(query: string, options?: { forceRefresh?: boolean }): Promise<PriceResult> {
-    for (const provider of this.providers) {
-      if (!provider.isAvailable()) continue;
+  async searchProduct(query: string, options?: { forceRefresh?: boolean, activeProviders?: string[] }): Promise<PriceResult> {
+    
+    // Sort and filter providers based on activeProviders preference if provided
+    let providersToRun = this.providers;
+    
+    if (options?.activeProviders && options.activeProviders.length > 0) {
+      providersToRun = [];
+      for (const providerName of options.activeProviders) {
+        const found = this.providers.find(p => p.name === providerName);
+        if (found) {
+          providersToRun.push(found);
+        }
+      }
+    } else {
+      // Default to SerperProvider if nothing is passed, to maintain backward compatibility
+      providersToRun = this.providers.filter(p => p.name === 'serper');
+      if (providersToRun.length === 0) {
+         providersToRun = this.providers; // Fallback to all if serper is not registered
+      }
+    }
+
+    console.log(`[ProviderRegistry] Starting search for "${query}" using cascade: ${providersToRun.map(p => p.name).join(' -> ')}`);
+
+    for (const provider of providersToRun) {
+      if (!provider.isAvailable()) {
+         console.log(`[ProviderRegistry] Provider ${provider.name} is unavailable. Skipping...`);
+         continue;
+      }
 
       const result = await provider.searchProduct(query, options);
       if (result.status === 'found' && result.results.length > 0) {
@@ -20,6 +45,7 @@ export class ProviderRegistry {
         const filteredResults = TextMatcher.filterBySimilarity(query, result.results, 0.15);
         
         if (filteredResults.length > 0) {
+          console.log(`[ProviderRegistry] Results found and verified via ${provider.name}. Aborting fallback (Cost saving achieved).`);
           return {
             ...result,
             results: filteredResults

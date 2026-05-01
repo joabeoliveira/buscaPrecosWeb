@@ -8,10 +8,14 @@ Utilize este documento para validar se as implementações das Fases 1 a 6 estã
 ## 🗄️ Fase 1: Fundação de Dados (Produtos Canônicos e Histórico)
 - [ ] **Teste de Normalização (Canonical Product):** 
   - *Ação:* Buscar "Papel Chamex A4", e em outra cotação buscar " Pàpèl  châmex a4  ".
-  - *Esperado:* Ambas as buscas devem gerar/utilizar o exato mesmo `canonical_product_id` na tabela `canonical_products` (string padronizada).
+  - *Esperado:* Ambas as buscas devem gerar/utilizar o exato mesmo `canonical_product_id` na tabela `canonical_products`
+  (string padronizada).
+
+
 - [ ] **Teste de Persistência Histórica:**
   - *Ação:* Iniciar uma cotação e buscar um produto que retorne múltiplas ofertas.
   - *Esperado:* A tabela `price_history` deve registrar novas linhas equivalentes ao número de lojistas encontrados (todas as ofertas), e não apenas a primeira colocada.
+
 - [ ] **Teste da View Estatística (`price_stats`):**
   - *Ação:* Inserir dados no `price_history` e consultar a view no Postgres.
   - *Esperado:* A tabela `price_stats` deve refletir automaticamente a `media_preco`, `preco_minimo` e `volatilidade` corretas daquele produto com base em todas as buscas históricas.

@@ -11,8 +11,8 @@ const batchProcessor = new BatchProcessor();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { listId, itemId } = SearchBatchSchema.parse(body);
-    const { jobId, processFunction } = await batchProcessor.startJob(listId, itemId);
+    const { listId, itemId, providers } = SearchBatchSchema.parse(body);
+    const { jobId, processFunction } = await batchProcessor.startJob(listId, itemId, providers);
 
     // Schedule background execution in Vercel so the container doesn't freeze
     after(processFunction);

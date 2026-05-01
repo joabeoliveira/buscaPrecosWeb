@@ -7,6 +7,7 @@ import { z } from 'zod';
 export const SearchBatchSchema = z.object({
   listId: z.string().uuid(),
   itemId: z.string().uuid().optional(),
+  providers: z.array(z.string()).optional(),
 });
 
 export const CreateListSchema = z.object({
