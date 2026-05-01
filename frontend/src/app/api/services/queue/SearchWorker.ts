@@ -1,7 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { connection } from './connection';
 import { SEARCH_QUEUE_NAME, SearchJobData } from './SearchQueue';
-import { SerperService } from '../SerperService';
 import { ParallelRequestManager } from '../ParallelRequestManager';
 import { ListRepository } from '../../repositories/ListRepository';
 import { JobRepository } from '../../repositories/JobRepository';
@@ -11,13 +10,18 @@ import { AlertRepository } from '../../repositories/AlertRepository';
 import { ScoreEngine } from '../ScoreEngine';
 import { WebhookService } from '../WebhookService';
 
+import { ProviderRegistry } from '../providers/ProviderRegistry';
+import { SerperProvider } from '../providers/SerperProvider';
+
 // Helpers
 function normalizeQuery(query: string): string {
   return query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
 
 // Instantiate singletons for the worker
-const serperService = new SerperService();
+const providerRegistry = new ProviderRegistry();
+providerRegistry.register(new SerperProvider());
+
 const listRepository = new ListRepository();
 const jobRepository = new JobRepository();
 const requestManager = new ParallelRequestManager(3);
@@ -40,7 +44,7 @@ export const searchWorker = new Worker<SearchJobData>(
     try {
       await requestManager.processBatch(
         items,
-        (query) => serperService.searchProduct(query),
+        (query) => providerRegistry.searchProduct(query),
         async (query, result) => {
           let canonicalProductId: string | undefined;
 

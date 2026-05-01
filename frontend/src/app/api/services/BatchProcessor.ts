@@ -1,10 +1,5 @@
-import { SerperService } from './SerperService';
-import { ParallelRequestManager } from './ParallelRequestManager';
 import { ListRepository } from '../repositories/ListRepository';
 import { JobRepository } from '../repositories/JobRepository';
-import { CanonicalProductRepository } from '../repositories/CanonicalProductRepository';
-import { PriceHistoryRepository } from '../repositories/PriceHistoryRepository';
-import { ScoreEngine } from './ScoreEngine';
 
 // Local helper to replace helpers.js until moved
 function normalizeQuery(query: string): string {
@@ -12,20 +7,12 @@ function normalizeQuery(query: string): string {
 }
 
 export class BatchProcessor {
-  private serperService: SerperService;
   private listRepository: ListRepository;
   private jobRepository: JobRepository;
-  private requestManager: ParallelRequestManager;
-  private canonicalProductRepo: CanonicalProductRepository;
-  private priceHistoryRepo: PriceHistoryRepository;
 
   constructor() {
-    this.serperService = new SerperService();
     this.listRepository = new ListRepository();
     this.jobRepository = new JobRepository();
-    this.requestManager = new ParallelRequestManager(3); // 3 concurrent to be safer
-    this.canonicalProductRepo = new CanonicalProductRepository();
-    this.priceHistoryRepo = new PriceHistoryRepository();
   }
 
   async startJob(listId: string, itemId?: string): Promise<{ jobId: string, processFunction: () => Promise<void> }> {

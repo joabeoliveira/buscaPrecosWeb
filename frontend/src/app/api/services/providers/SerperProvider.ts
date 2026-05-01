@@ -1,17 +1,23 @@
 import axios from 'axios';
-import { normalizeQuery } from '../lib/helpers';
+import { normalizeQuery } from '../../lib/helpers';
 import { cacheService } from '@/services/cache/RedisCacheService';
 import type { ProductResult, PriceResult } from '@/types/api';
+import { PriceProvider } from './PriceProvider';
 
-export class SerperService {
+export class SerperProvider implements PriceProvider {
+  name = 'serper';
   private readonly apiKey: string;
   private readonly baseUrl = 'https://google.serper.dev/shopping';
 
   constructor() {
     this.apiKey = process.env.SERPER_API_KEY || '';
     if (!this.apiKey) {
-      console.warn('[Serper] WARNING: SERPER_API_KEY is not set! Searches will fail.');
+      console.warn('[SerperProvider] WARNING: SERPER_API_KEY is not set! Searches will fail.');
     }
+  }
+
+  isAvailable(): boolean {
+    return !!this.apiKey;
   }
 
   async searchProduct(query: string, options: { forceRefresh?: boolean } = {}): Promise<PriceResult> {
@@ -22,7 +28,7 @@ export class SerperService {
       try {
         const cached = await cacheService.get<PriceResult>(cacheKey);
         if (cached) {
-          console.log(`[Serper] Cache hit for: ${query}`);
+          console.log(`[SerperProvider] Cache hit for: ${query}`);
           return { ...cached, searchedAt: new Date(cached.searchedAt) };
         }
       } catch {
@@ -31,7 +37,7 @@ export class SerperService {
     }
 
     if (!this.apiKey) {
-      console.error(`[Serper] No API key configured.`);
+      console.error(`[SerperProvider] No API key configured.`);
       return this.errorResult();
     }
 
@@ -46,7 +52,7 @@ export class SerperService {
         return t;
       }).join(' ');
 
-      console.log(`[Serper] Searching for: "${query}" (Refined: "${refinedQ}")`);
+      console.log(`[SerperProvider] Searching for: "${query}" (Refined: "${refinedQ}")`);
       const response = await axios.post(
         this.baseUrl,
         {
@@ -123,7 +129,7 @@ export class SerperService {
 
       return result;
     } catch (error: any) {
-      console.error(`[Serper] Error searching for "${query}":`, error.message);
+      console.error(`[SerperProvider] Error searching for "${query}":`, error.message);
       return this.errorResult();
     }
   }
