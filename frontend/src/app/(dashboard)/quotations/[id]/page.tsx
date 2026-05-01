@@ -366,8 +366,21 @@ export default function ListResultsPage() {
            <RefreshCw size={48} className="animate-spin text-slate-200" />
            <p className="text-slate-500">Preparando painel...</p>
         </div>
-      ) : displayResults.length > 0 ? (
-        <ResultsTable results={displayResults} onAction={fetchResults} onIndividualSearch={handleIndividualSearchStarted} suppliers={suppliers} onSupplierSearch={(itemId, supplierId) => { shoppingApi.startBatchSearch(listId, itemId, ['n8n_scraper'], supplierId).then(r => pollStatus(r.jobId)).catch(console.error); }} />
+        <ResultsTable 
+          results={displayResults} 
+          onAction={fetchResults} 
+          onIndividualSearch={handleIndividualSearchStarted} 
+          suppliers={suppliers} 
+          onSupplierSearch={async (itemId, supplierId, lId, query) => {
+            try {
+              await shoppingApi.searchDirectOnSupplier(itemId, supplierId, lId, query);
+              await fetchResults();
+            } catch (error) {
+              console.error('Erro na busca direta:', error);
+              alert('Erro ao buscar neste parceiro.');
+            }
+          }} 
+        />
       ) : (
         <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white dark:border-petroleum-800 dark:bg-petroleum-900/40">
            {activeTab === 'approved' ? (

@@ -98,6 +98,11 @@ export const shoppingApi = {
     return response.data;
   },
 
+  searchDirectOnSupplier: async (itemId: string, supplierId: string, listId: string, query: string) => {
+    const response = await api.post('/suppliers/search', { itemId, supplierId, listId, query });
+    return response.data;
+  },
+
   getSearchStatus: async (jobId: string) => {
     const response = await api.get(`/search/status/${jobId}`);
     return response.data;

@@ -12,7 +12,7 @@ interface ResultsTableProps {
   onAction?: () => void;
   onIndividualSearch?: (jobId: string) => void;
   suppliers?: Supplier[];
-  onSupplierSearch?: (itemId: string, supplierId: string) => void;
+  onSupplierSearch?: (itemId: string, supplierId: string, listId: string, query: string) => Promise<void> | void;
 }
 
 const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndividualSearch, suppliers = [], onSupplierSearch }) => {
@@ -49,12 +49,13 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
 
   const handleSupplierSearch = async (itemId: string) => {
     const supplierId = itemSupplier[itemId];
-    if (!supplierId || !onSupplierSearch) return;
+    const item = results.find(r => r.id === itemId);
+    if (!supplierId || !onSupplierSearch || !item) return;
     setSupplierSearching(itemId);
     try {
-      onSupplierSearch(itemId, supplierId);
+      await onSupplierSearch(itemId, supplierId, item.shopping_list_id, item.original_query);
     } finally {
-      setTimeout(() => setSupplierSearching(null), 2000);
+      setSupplierSearching(null);
     }
   };
 
