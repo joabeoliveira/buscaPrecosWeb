@@ -16,6 +16,7 @@ import {
   UserCog
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import AlertDropdown from './AlertDropdown';
 
 interface NavItemProps {
   href: string;
@@ -103,6 +104,7 @@ export default function Sidebar() {
                 {userRole === 'admin' ? 'Administrador' : userRole === 'helper' ? 'Auxiliar' : userRole === 'auditor' ? 'Auditor' : 'Usuário'}
               </p>
             </div>
+            <AlertDropdown />
           </div>
           
           <button 
