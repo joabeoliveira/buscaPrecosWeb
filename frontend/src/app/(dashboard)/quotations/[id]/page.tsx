@@ -285,7 +285,7 @@ export default function ListResultsPage() {
           )}
 
           {!hasStartedAnySearch && results.length > 0 && (
-            <Button size="sm" onClick={startBatchSearch} isLoading={isStartingSearch} className="bg-petroleum-600 hover:bg-petroleum-700 text-white">
+            <Button size="sm" onClick={() => startBatchSearch()} isLoading={isStartingSearch} className="bg-petroleum-600 hover:bg-petroleum-700 text-white">
                <PlayCircle size={18} className="mr-2" />
                Cotar Todos os Itens
             </Button>

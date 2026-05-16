@@ -22,6 +22,9 @@ export const CreateListSchema = z.object({
       query: z.string(),
       unit: z.string().optional(),
       quantity: z.number().optional(),
+      category_id: z.string().uuid().nullable().optional(),
+      sku_grade: z.string().nullable().optional(),
+      target_price: z.number().nullable().optional(),
     })
   ])),
 });
@@ -29,8 +32,23 @@ export const CreateListSchema = z.object({
 export const UserSchema = z.object({
   name: z.string().min(3),
   email: z.string().email(),
-  role: z.enum(['admin', 'helper', 'auditor', 'user']),
+  role: z.enum(['super_admin', 'admin', 'helper', 'auditor', 'user', 'client_admin', 'client_buyer']),
+  client_id: z.string().uuid().nullable().optional(),
   password: z.string().min(4).optional(),
+});
+
+export const ClientSchema = z.object({
+  name: z.string().min(2),
+  document: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional().or(z.literal('')),
+  phone: z.string().nullable().optional(),
+  trade_name: z.string().nullable().optional(),
+  active: z.boolean().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const CategorySchema = z.object({
+  name: z.string().min(2).max(100),
 });
 
 export const LoginSchema = z.object({
@@ -40,7 +58,6 @@ export const LoginSchema = z.object({
 
 export const ApproveItemSchema = z.object({
   isApproved: z.boolean(),
-  userId: z.string().uuid().optional(),
 });
 
 export const SelectResultSchema = z.object({
@@ -52,5 +69,4 @@ export const SelectResultSchema = z.object({
     thumbnail: z.string().nullable().optional(),
     description: z.string().nullable().optional(),
   }),
-  userId: z.string().uuid().optional(),
 });

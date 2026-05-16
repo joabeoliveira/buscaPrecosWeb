@@ -17,6 +17,10 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/login');
+      return;
+    }
+    if (!isLoading && user && (user.role === 'client_admin' || user.role === 'client_buyer')) {
+      router.push('/client/dashboard');
     }
   }, [user, isLoading, router]);
 

@@ -17,7 +17,7 @@ export class BatchProcessor {
 
   async startJob(listId: string, itemId?: string, providers?: string[], supplierId?: string): Promise<{ jobId: string, processFunction: () => Promise<void> }> {
     const items = itemId 
-      ? await this.listRepository.getItemById(itemId)
+      ? await this.listRepository.getItemById(itemId, listId)
       : await this.listRepository.getItems(listId);
       
     const itemsList = Array.isArray(items) ? items : [items];

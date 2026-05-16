@@ -21,6 +21,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!user.active) {
+      return NextResponse.json(
+        { error: 'Usuário inativo.' },
+        { status: 403 }
+      );
+    }
+
     if (!user.password_hash) {
       return NextResponse.json(
         { error: 'Usuário sem senha definida.' },
@@ -40,6 +47,7 @@ export async function POST(request: NextRequest) {
       id: user.id,
       email: user.email,
       role: user.role,
+      client_id: user.client_id || null,
     });
 
     return NextResponse.json({
@@ -48,6 +56,7 @@ export async function POST(request: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role,
+        client_id: user.client_id || null,
       },
       token
     });

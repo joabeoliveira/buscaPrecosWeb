@@ -3,13 +3,34 @@
 import React, { useRef, useState } from 'react';
 import { Upload, AlertCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ListItemInput } from '@/services/api';
+import { ItemCategory, ListItemInput } from '@/services/api';
 
 interface FileUploaderProps {
   onAdd: (items: ListItemInput[]) => void;
+  categories?: ItemCategory[];
 }
 
-const FileUploader: React.FC<FileUploaderProps> = ({ onAdd }) => {
+const normalizeHeader = (value: string) =>
+  value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+const parseBrazilianNumber = (value: string | undefined, fallback = 1) => {
+  if (!value) return fallback;
+  const clean = value.trim().replace(/\./g, '').replace(',', '.');
+  const parsed = Number.parseFloat(clean);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const parseBrazilianMoney = (value: string | undefined) => {
+  if (!value?.trim()) return null;
+  const clean = value.replace(/R\$/gi, '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+  const parsed = Number.parseFloat(clean);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const splitCsvLine = (line: string, delimiter: string) =>
+  line.split(delimiter).map(col => col.trim().replace(/^"|"$/g, ''));
+
+const FileUploader: React.FC<FileUploaderProps> = ({ onAdd, categories = [] }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -31,24 +52,41 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onAdd }) => {
       let finalItems: ListItemInput[] = [];
 
       if (isCsv) {
-        // Simple CSV parsing (header "produto", "unidade", "quantidade")
         const lines = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length > 0) {
-          const headers = lines[0].toLowerCase().split(/[;,]/);
-          const productIndex = headers.findIndex(h => h.includes('prod') || h.includes('item') || h.includes('desc'));
-          const unitIndex = headers.findIndex(h => h.includes('un') || h.includes('medida'));
-          const qtyIndex = headers.findIndex(h => h.includes('qtd') || h.includes('quant'));
+          const delimiter = lines[0].includes(';') ? ';' : ',';
+          const headers = splitCsvLine(lines[0], delimiter).map(normalizeHeader);
+          const categoriesByName = new Map(
+            categories.map(category => [normalizeHeader(category.name), category])
+          );
+
+          const findIndex = (...terms: string[]) =>
+            headers.findIndex(header => terms.some(term => header.includes(term)));
+
+          const productIndex = findIndex('prod', 'item', 'desc');
+          const unitIndex = findIndex('un', 'medida');
+          const qtyIndex = findIndex('qtd', 'quant');
+          const categoryIndex = findIndex('categoria', 'grupo');
+          const gradeIndex = findIndex('grade', 'especificacao', 'spec');
+          const targetPriceIndex = findIndex('preco_alvo', 'preco alvo', 'referencia', 'valor ref');
           
           const dataLines = lines.slice(1);
           finalItems = dataLines.map(line => {
-            const cols = line.split(/[;,]/);
+            const cols = splitCsvLine(line, delimiter);
             const query = cols[productIndex !== -1 ? productIndex : 0]?.trim();
             if (!query) return null;
+
+            const categoryName = categoryIndex !== -1 ? cols[categoryIndex]?.trim() : '';
+            const category = categoryName ? categoriesByName.get(normalizeHeader(categoryName)) : null;
 
             return {
               query,
               unit: (unitIndex !== -1 ? cols[unitIndex]?.trim().toLowerCase() : 'un') || 'un',
-              quantity: (qtyIndex !== -1 ? parseFloat(cols[qtyIndex]?.replace(',', '.')) : 1) || 1,
+              quantity: parseBrazilianNumber(qtyIndex !== -1 ? cols[qtyIndex] : undefined),
+              category_id: category?.id || null,
+              category_name: category?.name || null,
+              sku_grade: (gradeIndex !== -1 ? cols[gradeIndex]?.trim() : '') || null,
+              target_price: parseBrazilianMoney(targetPriceIndex !== -1 ? cols[targetPriceIndex] : undefined),
             };
           }).filter(i => i !== null) as ListItemInput[];
         }

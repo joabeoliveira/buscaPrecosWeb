@@ -8,7 +8,8 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'helper' | 'auditor' | 'user';
+  role: 'super_admin' | 'admin' | 'helper' | 'auditor' | 'user' | 'client_admin' | 'client_buyer';
+  client_id?: string | null;
 }
 
 interface AuthContextType {
@@ -40,7 +41,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('bp_token', data.token);
     localStorage.setItem('bp_user', JSON.stringify(data.user));
     setUser(data.user);
-    router.push('/dashboard');
+    const isClientUser = data.user.role === 'client_admin' || data.user.role === 'client_buyer';
+    router.push(isClientUser ? '/client/dashboard' : '/dashboard');
   };
 
   const logout = () => {

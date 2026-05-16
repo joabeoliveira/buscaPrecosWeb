@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AlertRepository } from '@/app/api/repositories/AlertRepository';
+import { forbiddenResponse, isInternalUser, requireAuth } from '@/app/api/lib/auth';
 
 const alertRepo = new AlertRepository();
 
@@ -8,6 +9,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = requireAuth(request);
+    if (user instanceof NextResponse) return user;
+    if (!isInternalUser(user)) return forbiddenResponse();
+
     const { id } = await params;
     if (!id) {
       return NextResponse.json({ error: 'Missing alert ID' }, { status: 400 });

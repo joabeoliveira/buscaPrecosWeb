@@ -26,7 +26,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
 
   const handleSelectProduct = async (itemId: string, product: ProductResult) => {
     try {
-      await shoppingApi.selectProduct(itemId, product);
+      await shoppingApi.selectProduct(itemId, product, analyzingItem?.shopping_list_id);
       setAnalyzingItem(null);
       if (onAction) onAction();
     } catch (error) {

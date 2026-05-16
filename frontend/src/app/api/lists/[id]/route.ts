@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ListRepository } from '@/app/api/repositories/ListRepository';
+import { canAccessClient, forbiddenResponse, requireAuth } from '@/app/api/lib/auth';
 
 const listRepository = new ListRepository();
 
@@ -9,6 +10,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = requireAuth(request);
+    if (user instanceof NextResponse) return user;
+
     const { id } = await params;
     const list = await listRepository.getById(id);
     
@@ -17,6 +21,10 @@ export async function GET(
         { error: 'Cotação não encontrada' },
         { status: 404 }
       );
+    }
+
+    if (!canAccessClient(user, list.client_id)) {
+      return forbiddenResponse('Você não tem acesso a esta cotação');
     }
     
     return NextResponse.json(list);
