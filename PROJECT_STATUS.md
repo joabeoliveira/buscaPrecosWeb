@@ -42,6 +42,13 @@ Registrar o que foi feito no dia, o status atual do projeto e os próximos passo
 - [x] EXTRA - Módulo Completo de Parceiros com Busca Síncrona
 
 ## Registro rápido diário
+### 2026-05-16
+- **Portal Cliente B2B**: Implementada migration incremental `016_b2b_client_portal.sql`, roles `client_admin`/`client_buyer`, JWT com `client_id`, rotas protegidas por escopo de cliente e area `/client`.
+- **Entrada B2B**: Adicionada criação de cotação pelo cliente com entrada manual, colar Excel e upload CSV/TXT com campos opcionais de categoria, grade e preço alvo.
+- **n8n**: Adicionados endpoints `/api/n8n/pending-notifications` e `/api/n8n/mark-notified`; envio manual passa a marcar notificação como enviada quando aplicável.
+- **Segurança/QA**: Endurecido `/api/users/init`; criado `npm run qa:b2b` para validar isolamento multitenant, permissões de categorias e bloqueio de rotas internas para usuários externos.
+- **Validação**: Builds de frontend/backend passaram; QA B2B automatizado passou localmente.
+
 ### 2026-05-01
 - **Manhã**: Implementado plano mestre de evolução B2B. Finalizado `AlertDropdown` na UI, fix da porta do Redis no Worker e inserido o filtro Jaccard.
 - **Noite**: Correção completa de UTF-8 do banco de dados, criação de CRUD de parceiros e lançamento do fluxo de busca direta e síncrona com n8n Webhook.
