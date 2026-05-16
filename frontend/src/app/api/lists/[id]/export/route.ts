@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ListRepository } from '@/app/api/repositories/ListRepository';
+import { canAccessClient, forbiddenResponse, requireAuth } from '@/app/api/lib/auth';
 import ExcelJS from 'exceljs';
 
 const listRepository = new ListRepository();
@@ -10,6 +11,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = requireAuth(request);
+    if (user instanceof NextResponse) return user;
+
     const { id } = await params;
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'excel';
@@ -21,7 +25,6 @@ export async function GET(
       );
     }
 
-    const results = await listRepository.getResults(id);
     const list = await listRepository.getById(id);
 
     if (!list) {
@@ -30,6 +33,12 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    if (!canAccessClient(user, list.client_id)) {
+      return forbiddenResponse('Você não tem acesso a esta cotação');
+    }
+
+    const results = await listRepository.getResults(id);
 
     if (format === 'csv') {
       let csv = '\ufeffProduto;Unidade;Quantidade;Status;Melhor Preço;Total;Loja;Link;Aprovado\n';

@@ -44,6 +44,11 @@ NODE_ENV=development
 
 # frontend/.env.local
 NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+JWT_SECRET=buscaprecos_dev_secret
+INIT_ADMIN_TOKEN=defina_um_token_local
+INIT_ADMIN_EMAIL=admin@example.com
+INIT_ADMIN_PASSWORD=admin123
+N8N_API_TOKEN=token_compartilhado_com_n8n
 ```
 
 > [!IMPORTANT]
@@ -58,6 +63,32 @@ cd ..
 ```
 > [!NOTE]
 > Existem migrações adicionais em `backend/migrations/`. Se o sistema acusar falta de colunas ou tabelas, pode ser necessário aplicar os outros scripts SQL manualmente ou via scripts em `backend/src/scripts/`.
+
+Para ambientes com o Portal do Cliente B2B, aplique também a migration incremental:
+
+```powershell
+psql "postgresql://dev:dev123@localhost:5437/BuscaPrecosWeb" -f backend/migrations/016_b2b_client_portal.sql
+```
+
+### 4.1 Bootstrap de Admin Local
+
+O endpoint `/api/users/init` só funciona fora de produção. Se já existir usuário no banco, ele exige `INIT_ADMIN_TOKEN`:
+
+```powershell
+Invoke-RestMethod "http://localhost:3000/api/users/init?token=defina_um_token_local"
+```
+
+Use `INIT_ADMIN_EMAIL`, `INIT_ADMIN_PASSWORD` e `INIT_ADMIN_NAME` para definir o administrador criado/atualizado.
+
+### 4.2 Endpoints para n8n
+
+As rotas `/api/n8n/pending-notifications` e `/api/n8n/mark-notified` aceitam usuário interno autenticado ou o header técnico:
+
+```powershell
+x-n8n-token: token_compartilhado_com_n8n
+```
+
+Configure o mesmo valor em `N8N_API_TOKEN`.
 
 ### 5. Executar o Projeto
 Para rodar tanto o Backend quanto o Frontend simultaneamente:

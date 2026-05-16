@@ -25,6 +25,23 @@ export interface ListItemInput {
   query: string;
   unit?: string;
   quantity?: number;
+  category_id?: string | null;
+  category_name?: string | null;
+  sku_grade?: string | null;
+  target_price?: number | null;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  url: string;
+  category: string;
+  is_active: boolean;
+  free_shipping: boolean;
+  min_free_shipping: number | null;
+  score: number;
+  avg_delivery_days: number | null;
+  notes: string | null;
 }
 
 export interface ListResult {
@@ -33,6 +50,10 @@ export interface ListResult {
   original_query: string;
   unit: string;
   quantity: number;
+  category_id?: string | null;
+  category_name?: string | null;
+  sku_grade?: string | null;
+  target_price?: number | null;
   best_price: number | null;
   best_store: string | null;
   best_product_title: string | null;
@@ -49,8 +70,17 @@ export interface ProductResult {
   price: number;
   link: string;
   store: string;
+  source?: string;
   thumbnail?: string;
   snippet?: string;
+  description?: string | null;
+}
+
+export interface ItemCategory {
+  id: string;
+  client_id: string;
+  name: string;
+  active: boolean;
 }
 
 export const shoppingApi = {
@@ -80,8 +110,13 @@ export const shoppingApi = {
     return response.data;
   },
 
-  startBatchSearch: async (listId: string, itemId?: string) => {
-    const response = await api.post('/search/batch', { listId, itemId });
+  startBatchSearch: async (listId: string, itemId?: string, providers?: string[], supplierId?: string) => {
+    const response = await api.post('/search/batch', { listId, itemId, providers, supplierId });
+    return response.data;
+  },
+
+  searchDirectOnSupplier: async (itemId: string, supplierId: string, listId: string, query: string) => {
+    const response = await api.post('/suppliers/search', { itemId, supplierId, listId, query });
     return response.data;
   },
 
@@ -90,15 +125,20 @@ export const shoppingApi = {
     return response.data;
   },
 
-  approveItem: async (itemId: string, isApproved: boolean, userId?: string, listId?: string) => {
+  approveItem: async (itemId: string, isApproved: boolean, listId?: string) => {
     // Use the list-scoped route; listId is needed for the new URL structure
     const lid = listId || 'default';
-    await api.patch(`/lists/${lid}/approve/${itemId}`, { isApproved, userId });
+    await api.patch(`/lists/${lid}/approve/${itemId}`, { isApproved });
   },
 
-  selectProduct: async (itemId: string, selection: ProductResult, userId?: string, listId?: string): Promise<void> => {
+  selectProduct: async (itemId: string, selection: ProductResult, listId?: string): Promise<void> => {
     const lid = listId || 'default';
-    await api.post(`/lists/${lid}/select/${itemId}`, { selection, userId });
+    await api.post(`/lists/${lid}/select/${itemId}`, {
+      selection: {
+        ...selection,
+        source: selection.source || selection.store,
+      }
+    });
   },
 
   listUsers: async () => {
@@ -106,8 +146,8 @@ export const shoppingApi = {
     return response.data;
   },
 
-  createUser: async (name: string, email: string, role: string = 'user') => {
-    const response = await api.post('/users', { name, email, role });
+  createUser: async (name: string, email: string, role: string = 'user', clientId?: string | null) => {
+    const response = await api.post('/users', { name, email, role, client_id: clientId || null });
     return response.data;
   },
 
@@ -120,9 +160,20 @@ export const shoppingApi = {
     await api.delete(`/users?id=${id}`);
   },
 
-  exportQuotation: (listId: string, format: 'excel' | 'csv' = 'excel') => {
-    const url = `${API_URL}/lists/${listId}/export?format=${format}`;
-    window.open(url, '_blank');
+  exportQuotation: async (listId: string, format: 'excel' | 'csv' = 'excel') => {
+    const response = await api.get(`/lists/${listId}/export`, {
+      params: { format },
+      responseType: 'blob',
+    });
+    const extension = format === 'csv' ? 'csv' : 'xlsx';
+    const blobUrl = window.URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `cotacao_${listId.substring(0, 8)}.${extension}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
   },
 
   sendQuotationToN8n: async (listId: string, data: any) => {
@@ -138,8 +189,37 @@ export const shoppingApi = {
     return response.data;
   },
 
-  createClient: async (data: { name: string; document?: string; email?: string; phone?: string }) => {
+  createClient: async (data: { name: string; document?: string; email?: string; phone?: string; trade_name?: string; active?: boolean; metadata?: Record<string, unknown> }) => {
     const response = await api.post('/clients', data);
     return response.data;
+  },
+
+  listClientCategories: async (clientId: string): Promise<ItemCategory[]> => {
+    const response = await api.get(`/clients/${clientId}/categories`);
+    return response.data;
+  },
+
+  createClientCategory: async (clientId: string, name: string): Promise<ItemCategory> => {
+    const response = await api.post(`/clients/${clientId}/categories`, { name });
+    return response.data;
+  },
+
+  listSuppliers: async (): Promise<Supplier[]> => {
+    const response = await api.get('/suppliers');
+    return response.data;
+  },
+
+  createSupplier: async (data: Omit<Supplier, 'id'>) => {
+    const response = await api.post('/suppliers', data);
+    return response.data;
+  },
+
+  updateSupplier: async (id: string, data: Partial<Supplier>) => {
+    const response = await api.put(`/suppliers/${id}`, data);
+    return response.data;
+  },
+
+  deleteSupplier: async (id: string) => {
+    await api.delete(`/suppliers/${id}`);
   },
 };

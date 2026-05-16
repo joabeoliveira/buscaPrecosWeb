@@ -6,6 +6,18 @@ export interface Client {
   document: string | null;
   email: string | null;
   phone: string | null;
+  trade_name?: string | null;
+  active?: boolean;
+  metadata?: Record<string, unknown>;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ItemCategory {
+  id: string;
+  client_id: string;
+  name: string;
+  active: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -16,10 +28,28 @@ export class ClientRepository {
     return result.rows;
   }
 
-  async create(data: { name: string; document?: string; email?: string; phone?: string }): Promise<string> {
+  async create(data: {
+    name: string;
+    document?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    trade_name?: string | null;
+    active?: boolean;
+    metadata?: Record<string, unknown>;
+  }): Promise<string> {
     const result = await pool.query(
-      'INSERT INTO clients (name, document, email, phone) VALUES ($1, $2, $3, $4) RETURNING id',
-      [data.name, data.document || null, data.email || null, data.phone || null]
+      `INSERT INTO clients (name, document, email, phone, trade_name, active, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id`,
+      [
+        data.name,
+        data.document || null,
+        data.email || null,
+        data.phone || null,
+        data.trade_name || null,
+        data.active ?? true,
+        JSON.stringify(data.metadata || {}),
+      ]
     );
     return result.rows[0].id;
   }
@@ -50,6 +80,18 @@ export class ClientRepository {
       fields.push(`phone = $${i++}`);
       values.push(data.phone);
     }
+    if (data.trade_name !== undefined) {
+      fields.push(`trade_name = $${i++}`);
+      values.push(data.trade_name);
+    }
+    if (data.active !== undefined) {
+      fields.push(`active = $${i++}`);
+      values.push(data.active);
+    }
+    if (data.metadata !== undefined) {
+      fields.push(`metadata = $${i++}`);
+      values.push(JSON.stringify(data.metadata));
+    }
 
     if (fields.length === 0) return;
 
@@ -62,5 +104,23 @@ export class ClientRepository {
 
   async delete(id: string): Promise<void> {
     await pool.query('DELETE FROM clients WHERE id = $1', [id]);
+  }
+
+  async listCategories(clientId: string): Promise<ItemCategory[]> {
+    const result = await pool.query(
+      'SELECT * FROM item_categories WHERE client_id = $1 AND active = true ORDER BY name ASC',
+      [clientId]
+    );
+    return result.rows;
+  }
+
+  async createCategory(clientId: string, name: string): Promise<ItemCategory> {
+    const result = await pool.query(
+      `INSERT INTO item_categories (client_id, name)
+       VALUES ($1, $2)
+       RETURNING *`,
+      [clientId, name.trim()]
+    );
+    return result.rows[0];
   }
 }

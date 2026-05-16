@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ExternalLink, Info, Store, CheckCircle, XCircle, RefreshCw, ZoomIn, Search, LayoutList, Play } from 'lucide-react';
+import { ExternalLink, Info, Store, CheckCircle, XCircle, RefreshCw, ZoomIn, Search, LayoutList, Play, Handshake, ChevronDown } from 'lucide-react';
 import PriceBadge from '@/components/ui/PriceBadge';
-import { ListResult, shoppingApi, ProductResult } from '@/services/api';
+import { ListResult, shoppingApi, ProductResult, Supplier } from '@/services/api';
 import { cn } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 
@@ -11,18 +11,22 @@ interface ResultsTableProps {
   results: ListResult[];
   onAction?: () => void;
   onIndividualSearch?: (jobId: string) => void;
+  suppliers?: Supplier[];
+  onSupplierSearch?: (itemId: string, supplierId: string, listId: string, query: string) => Promise<void> | void;
 }
 
-const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndividualSearch }) => {
+const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndividualSearch, suppliers = [], onSupplierSearch }) => {
   const [analyzingItem, setAnalyzingItem] = useState<ListResult | null>(null);
   const [localSearching, setLocalSearching] = useState<string | null>(null);
   const [analysisSortMode, setAnalysisSortMode] = useState<'priceAsc' | 'priceDesc' | 'relevanceThenPrice'>('priceAsc');
+  const [itemSupplier, setItemSupplier] = useState<Record<string, string>>({});
+  const [supplierSearching, setSupplierSearching] = useState<string | null>(null);
 
   if (results.length === 0) return null;
 
   const handleSelectProduct = async (itemId: string, product: ProductResult) => {
     try {
-      await shoppingApi.selectProduct(itemId, product);
+      await shoppingApi.selectProduct(itemId, product, analyzingItem?.shopping_list_id);
       setAnalyzingItem(null);
       if (onAction) onAction();
     } catch (error) {
@@ -40,6 +44,18 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
        alert('Erro ao iniciar busca para este item.');
     } finally {
        setLocalSearching(null);
+    }
+  };
+
+  const handleSupplierSearch = async (itemId: string) => {
+    const supplierId = itemSupplier[itemId];
+    const item = results.find(r => r.id === itemId);
+    if (!supplierId || !onSupplierSearch || !item) return;
+    setSupplierSearching(itemId);
+    try {
+      await onSupplierSearch(itemId, supplierId, item.shopping_list_id, item.original_query);
+    } finally {
+      setSupplierSearching(null);
     }
   };
 
@@ -102,6 +118,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
                 <th className="px-6 py-4 text-right">Qtd</th>
                 <th className="px-6 py-4">Status da Cotação</th>
                 <th className="px-6 py-4">Resultado Escolhido</th>
+                {suppliers.length > 0 && <th className="px-6 py-4">Buscar em Parceiro</th>}
                 <th className="px-6 py-4 text-right">Ação</th>
               </tr>
             </thead>
@@ -227,6 +244,39 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onAction, onIndivi
                         <span className="text-slate-400 italic">—</span>
                       )}
                     </td>
+
+                    {/* Supplier search column */}
+                    {suppliers.length > 0 && (
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-2 min-w-[220px]">
+                          <div className="relative flex-1">
+                            <select
+                              value={itemSupplier[result.id] || ''}
+                              onChange={e => setItemSupplier(prev => ({ ...prev, [result.id]: e.target.value }))}
+                              className="h-9 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 pl-3 pr-8 text-xs font-medium text-slate-700 focus:border-petroleum-500 focus:ring-2 focus:ring-petroleum-500/10 dark:border-petroleum-700 dark:bg-petroleum-900/50 dark:text-white"
+                            >
+                              <option value="">Escolher parceiro...</option>
+                              {suppliers.map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                              ))}
+                            </select>
+                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+                          </div>
+                          <button
+                            disabled={!itemSupplier[result.id] || supplierSearching === result.id}
+                            onClick={() => handleSupplierSearch(result.id)}
+                            title="Buscar neste parceiro"
+                            className="h-9 w-9 flex items-center justify-center rounded-xl bg-petroleum-600 text-white hover:bg-petroleum-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+                          >
+                            {supplierSearching === result.id ? (
+                              <RefreshCw size={14} className="animate-spin" />
+                            ) : (
+                              <Handshake size={14} />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    )}
 
                     <td className="px-6 py-5 text-right">
                       {isPending || isNotFound || isError ? (

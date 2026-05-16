@@ -2,18 +2,26 @@ import { SerperService } from './api/SerperService.js';
 import { ParallelRequestManager } from './ParallelRequestManager.js';
 import { ListRepository } from '../repositories/ListRepository.js';
 import { JobRepository } from '../repositories/JobRepository.js';
+import { CanonicalProductRepository } from '../repositories/CanonicalProductRepository.js';
+import { PriceHistoryRepository } from '../repositories/PriceHistoryRepository.js';
+import { normalizeQuery } from '../utils/helpers.js';
+import { ScoreEngine } from './ScoreEngine.js';
 
 export class BatchProcessor {
   private serperService: SerperService;
   private listRepository: ListRepository;
   private jobRepository: JobRepository;
   private requestManager: ParallelRequestManager;
+  private canonicalProductRepo: CanonicalProductRepository;
+  private priceHistoryRepo: PriceHistoryRepository;
 
   constructor() {
     this.serperService = new SerperService();
     this.listRepository = new ListRepository();
     this.jobRepository = new JobRepository();
     this.requestManager = new ParallelRequestManager(3); // 3 concurrent to be safer
+    this.canonicalProductRepo = new CanonicalProductRepository();
+    this.priceHistoryRepo = new PriceHistoryRepository();
   }
 
   async startJob(listId: string, itemId?: string): Promise<string> {
@@ -52,12 +60,65 @@ export class BatchProcessor {
         items,
         (query) => this.serperService.searchProduct(query),
         async (query, result) => {
+          let canonicalProductId: string | undefined;
+
+          if (result.status === 'found') {
+            try {
+              // 1. Get or Create Canonical Product
+              const normalized = normalizeQuery(query);
+              const canonical = await this.canonicalProductRepo.getOrCreate(normalized);
+              canonicalProductId = canonical.id;
+
+              // 2. Save Price History for all found offers
+              for (const offer of result.results) {
+                await this.priceHistoryRepo.addRecord({
+                  canonical_product_id: canonicalProductId,
+                  price: offer.price,
+                  store: offer.source,
+                  product_title: offer.title,
+                  product_link: offer.link || '',
+                  source: 'serper',
+                  shopping_list_id: listId
+                });
+              }
+            } catch (err: any) {
+              console.error(`[BatchProcessor] Error handling canonical/history for "${query}":`, err.message);
+            }
+          }
+
           try {
-            // Update database for this specific item with ALL results
-            await this.listRepository.updateItemResult(listId, query, {
-              status: result.status,
-              results: result.results,
-            });
+              // 3. Calculate Score and Auto-Select
+              let offerScoreValue: number | undefined;
+              let opportunityFlags: string[] | undefined;
+              let autoSelected = false;
+
+              if (result.results.length > 0) {
+                const bestOffer = result.results[0]!; // Currently assumes first is best (cheapest)
+                let stats = null;
+                
+                if (canonicalProductId) {
+                  stats = await this.priceHistoryRepo.getStats(canonicalProductId);
+                }
+                
+                const scoreResult = ScoreEngine.calculateScore(bestOffer, stats);
+                offerScoreValue = scoreResult.score;
+                opportunityFlags = scoreResult.flags;
+
+                // Auto-select if score is good enough (e.g., >= 100)
+                if (offerScoreValue >= 100) {
+                  autoSelected = true;
+                }
+              }
+
+              // Update database for this specific item with ALL results, canonical ID, and score
+              await this.listRepository.updateItemResult(listId, query, {
+                status: result.status,
+                results: result.results,
+                canonical_product_id: canonicalProductId,
+                auto_selected: autoSelected,
+                offer_score: offerScoreValue,
+                opportunity_flags: opportunityFlags
+              });
           } catch (dbErr: any) {
             console.error(`[BatchProcessor] DB update failed for "${query}":`, dbErr.message);
           }
@@ -78,6 +139,14 @@ export class BatchProcessor {
       );
 
       console.log(`[BatchProcessor] Job ${jobId} completed. Success: ${successCount}, Errors: ${errorCount}, Total: ${items.length}`);
+
+      // Refresh materialized stats view after batch completes
+      try {
+        await this.priceHistoryRepo.refreshStats();
+        console.log(`[BatchProcessor] Price stats view refreshed`);
+      } catch (err: any) {
+        console.error(`[BatchProcessor] Failed to refresh stats view:`, err.message);
+      }
 
       // If ALL items errored, mark the job as failed
       if (errorCount === items.length) {

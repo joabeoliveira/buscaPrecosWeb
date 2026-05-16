@@ -3,14 +3,22 @@ import type { User } from '@/types/database';
 
 export class UserRepository {
   async listAll(): Promise<User[]> {
-    const result = await pool.query('SELECT id, name, email, role, active, created_at FROM users ORDER BY name ASC');
+    const result = await pool.query('SELECT id, name, email, role, client_id, active, created_at FROM users ORDER BY name ASC');
     return result.rows;
   }
 
-  async create(name: string, email: string, role: string = 'user', passwordHash?: string): Promise<string> {
+  async listByClient(clientId: string): Promise<User[]> {
     const result = await pool.query(
-      'INSERT INTO users (name, email, role, password_hash) VALUES ($1, $2, $3, $4) RETURNING id',
-      [name, email, role, passwordHash || null]
+      'SELECT id, name, email, role, client_id, active, created_at FROM users WHERE client_id = $1 ORDER BY name ASC',
+      [clientId]
+    );
+    return result.rows;
+  }
+
+  async create(name: string, email: string, role: string = 'user', passwordHash?: string, clientId: string | null = null): Promise<string> {
+    const result = await pool.query(
+      'INSERT INTO users (name, email, role, password_hash, client_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [name, email, role, passwordHash || null, clientId]
     );
     return result.rows[0].id;
   }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ListRepository } from '@/app/api/repositories/ListRepository';
+import { canAccessClient, forbiddenResponse, requireAuth } from '@/app/api/lib/auth';
 import { z } from 'zod';
 
 const listRepository = new ListRepository();
@@ -13,7 +14,6 @@ const SelectResultSchema = z.object({
     thumbnail: z.string().nullable().optional(),
     description: z.string().nullable().optional(),
   }),
-  userId: z.string().uuid().optional(),
 });
 
 // POST /api/lists/[id]/select/[itemId] - Select a product result for an item
@@ -22,11 +22,27 @@ export async function POST(
   { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
-    const { itemId } = await params;
+    const user = requireAuth(request);
+    if (user instanceof NextResponse) return user;
+
+    const { id, itemId } = await params;
+    const list = await listRepository.getById(id);
+
+    if (!list) {
+      return NextResponse.json(
+        { error: 'Cotação não encontrada' },
+        { status: 404 }
+      );
+    }
+
+    if (!canAccessClient(user, list.client_id)) {
+      return forbiddenResponse('Você não tem acesso a esta cotação');
+    }
+
     const body = await request.json();
-    const { selection, userId } = SelectResultSchema.parse(body);
+    const { selection } = SelectResultSchema.parse(body);
     
-    await listRepository.selectResult(itemId, selection, userId || null);
+    await listRepository.selectResult(id, itemId, selection, user.id);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     if (error instanceof z.ZodError) {

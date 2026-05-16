@@ -88,6 +88,9 @@ Adicione estas variáveis manualmente (as do banco são adicionadas automaticame
 | `SERPER_API_KEY` | `50559f72...` (sua chave) | Production, Preview |
 | `SERPAPI_API_KEY` | `ffd28c38...` (sua chave) | Production, Preview |
 | `JWT_SECRET` | *(gerar uma chave forte)* | Production, Preview |
+| `N8N_API_TOKEN` | *(gerar uma chave forte para chamadas técnicas do n8n)* | Production, Preview |
+| `N8N_WEBHOOK_URL` | webhook de envio de cotação | Production, Preview |
+| `N8N_SCRAPER_WEBHOOK_URL` | webhook de busca em parceiros | Production, Preview |
 | `NODE_ENV` | `production` | Production |
 
 ### Gerar JWT_SECRET seguro
@@ -123,6 +126,8 @@ backend/migrations/003_add_description.sql
 backend/migrations/004_pro_flow_expansion.sql
 backend/migrations/005_add_unit_quantity.sql
 backend/migrations/006_user_roles.sql
+...
+backend/migrations/016_b2b_client_portal.sql
 ```
 
 ### Opção B: Via linha de comando (psql)
@@ -138,6 +143,8 @@ psql "$DATABASE_URL" -f backend/migrations/003_add_description.sql
 psql "$DATABASE_URL" -f backend/migrations/004_pro_flow_expansion.sql
 psql "$DATABASE_URL" -f backend/migrations/005_add_unit_quantity.sql
 psql "$DATABASE_URL" -f backend/migrations/006_user_roles.sql
+# continue executando as migrations restantes em ordem ate:
+psql "$DATABASE_URL" -f backend/migrations/016_b2b_client_portal.sql
 ```
 
 ---

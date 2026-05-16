@@ -5,8 +5,8 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import ProgressBar from '@/components/ui/ProgressBar';
 import ResultsTable from '@/components/results/ResultsTable';
 import Button from '@/components/ui/Button';
-import { shoppingApi, ListResult } from '@/services/api';
-import { ArrowLeft, RefreshCw, ShoppingBag, LayoutList, PlayCircle, Search, Building, Download, Clock, AlertTriangle, Send, CheckCircle } from 'lucide-react';
+import { shoppingApi, ListResult, Supplier } from '@/services/api';
+import { ArrowLeft, RefreshCw, ShoppingBag, LayoutList, PlayCircle, Search, Building, Download, Clock, AlertTriangle, Send, CheckCircle, Handshake } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +22,7 @@ export default function ListResultsPage() {
   const [loading, setLoading] = useState(true);
   const [isStartingSearch, setIsStartingSearch] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'approved'>('all');
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSendingToN8n, setIsSendingToN8n] = useState(false);
@@ -78,10 +79,12 @@ export default function ListResultsPage() {
     }
   };
 
-  const startBatchSearch = async () => {
+  const startBatchSearch = async (supplierId?: string) => {
     setIsStartingSearch(true);
     try {
-      const { jobId } = await shoppingApi.startBatchSearch(listId);
+      // By default use n8n_scraper + serper; if a specific supplier is chosen, only use n8n_scraper
+      const providers = supplierId ? ['n8n_scraper'] : ['n8n_scraper', 'serper'];
+      const { jobId } = await shoppingApi.startBatchSearch(listId, undefined, providers, supplierId);
       await pollStatus(jobId);
     } catch (error) {
       console.error('Failed to start search:', error);
@@ -102,6 +105,13 @@ export default function ListResultsPage() {
       setLoading(true);
       setErrorMsg(null);
       await fetchResults();
+      // Also load suppliers for the dropdown in the results table
+      try {
+        const suppliersData = await shoppingApi.listSuppliers();
+        if (mountedRef.current) setSuppliers(suppliersData.filter(s => s.is_active));
+      } catch {
+        // Non-critical; continue
+      }
       
       if (mountedRef.current) {
         setLoading(false);
@@ -124,7 +134,7 @@ export default function ListResultsPage() {
     setIsStartingSearch(true);
     try {
       const promises = failedResults.map(item => 
-        shoppingApi.startBatchSearch(listId, item.id)
+        shoppingApi.startBatchSearch(listId, item.id, ['n8n_scraper', 'serper'])
       );
       const retryResults = await Promise.all(promises);
       if (retryResults[0]) {
@@ -275,7 +285,7 @@ export default function ListResultsPage() {
           )}
 
           {!hasStartedAnySearch && results.length > 0 && (
-            <Button size="sm" onClick={startBatchSearch} isLoading={isStartingSearch} className="bg-petroleum-600 hover:bg-petroleum-700 text-white">
+            <Button size="sm" onClick={() => startBatchSearch()} isLoading={isStartingSearch} className="bg-petroleum-600 hover:bg-petroleum-700 text-white">
                <PlayCircle size={18} className="mr-2" />
                Cotar Todos os Itens
             </Button>
@@ -284,15 +294,23 @@ export default function ListResultsPage() {
       </div>
 
       {!hasStartedAnySearch && !loading && (
-        <div className="mb-8 rounded-2xl bg-petroleum-50 p-8 border border-petroleum-100 dark:bg-petroleum-900/20 dark:border-petroleum-800 text-center">
-            <h2 className="text-xl font-bold text-petroleum-900 dark:text-petroleum-100 mb-2">Pronto para iniciar a cotação?</h2>
-            <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-2xl mx-auto">
-              Sua lista foi criada com sucesso. Clique no botão abaixo para buscar preços em tempo real para todos os itens ou use o botão de cotação individual na tabela.
+        <div className="mb-8 rounded-2xl bg-petroleum-50 p-10 border border-petroleum-100 dark:bg-petroleum-900/20 dark:border-petroleum-800 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-petroleum-600 text-white shadow-lg shadow-petroleum-300/40">
+            <Search size={28} />
+          </div>
+          <h2 className="text-xl font-bold text-petroleum-900 dark:text-petroleum-100 mb-2">Pronto para iniciar a cotação?</h2>
+          <p className="text-slate-500 dark:text-petroleum-400 mb-6 text-sm max-w-sm mx-auto">
+            Clique abaixo para buscar preços em todos os canais ativos. Após a busca, você poderá também consultar parceiros específicos para cada item individualmente.
+          </p>
+          {suppliers.length > 0 && (
+            <p className="mb-4 text-xs text-petroleum-600 dark:text-petroleum-400 flex items-center justify-center gap-1.5">
+              <Handshake size={14} /> {suppliers.length} {suppliers.length === 1 ? 'parceiro disponível' : 'parceiros disponíveis'} para busca individual
             </p>
-            <Button size="lg" onClick={startBatchSearch} isLoading={isStartingSearch} className="gap-2 px-8 py-6 text-lg shadow-xl shadow-petroleum-200 dark:shadow-none bg-petroleum-900 text-white dark:bg-petroleum-500">
-                <Search size={24} />
-                Iniciar Pesquisa de Preços (Todos)
-            </Button>
+          )}
+          <Button size="lg" onClick={() => startBatchSearch()} isLoading={isStartingSearch} className="gap-2 px-8 py-6 text-lg shadow-xl shadow-petroleum-200 dark:shadow-none bg-petroleum-900 text-white dark:bg-petroleum-500">
+            <Search size={24} />
+            Iniciar Pesquisa de Preços
+          </Button>
         </div>
       )}
 
@@ -349,7 +367,21 @@ export default function ListResultsPage() {
            <p className="text-slate-500">Preparando painel...</p>
         </div>
       ) : displayResults.length > 0 ? (
-        <ResultsTable results={displayResults} onAction={fetchResults} onIndividualSearch={handleIndividualSearchStarted} />
+        <ResultsTable 
+          results={displayResults} 
+          onAction={fetchResults} 
+          onIndividualSearch={handleIndividualSearchStarted} 
+          suppliers={suppliers} 
+          onSupplierSearch={async (itemId, supplierId, lId, query) => {
+            try {
+              await shoppingApi.searchDirectOnSupplier(itemId, supplierId, lId, query);
+              await fetchResults();
+            } catch (error) {
+              console.error('Erro na busca direta:', error);
+              alert('Erro ao buscar neste parceiro.');
+            }
+          }} 
+        />
       ) : (
         <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white dark:border-petroleum-800 dark:bg-petroleum-900/40">
            {activeTab === 'approved' ? (

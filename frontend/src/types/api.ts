@@ -6,6 +6,10 @@ export interface ListItemInput {
   query: string;
   unit?: string;
   quantity?: number;
+  category_id?: string | null;
+  category_name?: string | null;
+  sku_grade?: string | null;
+  target_price?: number | null;
 }
 
 export interface ListResult {
@@ -14,6 +18,10 @@ export interface ListResult {
   original_query: string;
   unit: string;
   quantity: number;
+  category_id?: string | null;
+  category_name?: string | null;
+  sku_grade?: string | null;
+  target_price?: number | null;
   best_price: number | null;
   best_store: string | null;
   best_product_title: string | null;

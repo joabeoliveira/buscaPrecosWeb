@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ListRepository } from '@/app/api/repositories/ListRepository';
+import { canAccessClient, forbiddenResponse, requireAuth } from '@/app/api/lib/auth';
 import { z } from 'zod';
 
 const listRepository = new ListRepository();
 
 const ApproveItemSchema = z.object({
   isApproved: z.boolean(),
-  userId: z.string().uuid().optional(),
 });
 
 // PATCH /api/lists/[id]/approve/[itemId] - Approve/disapprove an item
@@ -15,11 +15,27 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
-    const { itemId } = await params;
+    const user = requireAuth(request);
+    if (user instanceof NextResponse) return user;
+
+    const { id, itemId } = await params;
+    const list = await listRepository.getById(id);
+
+    if (!list) {
+      return NextResponse.json(
+        { error: 'Cotação não encontrada' },
+        { status: 404 }
+      );
+    }
+
+    if (!canAccessClient(user, list.client_id)) {
+      return forbiddenResponse('Você não tem acesso a esta cotação');
+    }
+
     const body = await request.json();
-    const { isApproved, userId } = ApproveItemSchema.parse(body);
+    const { isApproved } = ApproveItemSchema.parse(body);
     
-    await listRepository.approveItem(itemId, isApproved, userId || null);
+    await listRepository.approveItem(id, itemId, isApproved, user.id);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     if (error instanceof z.ZodError) {

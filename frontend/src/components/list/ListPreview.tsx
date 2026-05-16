@@ -53,7 +53,14 @@ const ListPreview: React.FC<ListPreviewProps> = ({
             {items.map((item, index) => (
               <tr key={index} className="group hover:bg-slate-50 dark:hover:bg-petroleum-800/50">
                 <td className="px-4 py-3 text-slate-700 dark:text-slate-300 font-medium">
-                  {item.query}
+                  <div>
+                    <p>{item.query}</p>
+                    {(item.category_name || item.sku_grade || item.target_price) && (
+                      <p className="mt-1 text-xs font-normal text-slate-400">
+                        {[item.category_name, item.sku_grade, item.target_price ? `Ref. ${item.target_price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : null].filter(Boolean).join(' | ')}
+                      </p>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-center">
                   <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-500 dark:bg-petroleum-800 dark:text-petroleum-400">

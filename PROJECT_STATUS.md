@@ -1,68 +1,54 @@
 # Project Status - BuscaPrecosWeb
 
-Data de referencia: 2026-03-18
+Data de referência: 2026-05-01
 Owner: Joabe Oliveira
 
 ## Objetivo do arquivo
-Registrar o que foi feito no dia, o status atual do projeto e os proximos passos para execucao do MVP sem perder contexto.
+Registrar o que foi feito no dia, o status atual do projeto e os próximos passos para execução do MVP sem perder contexto.
 
 ## Status geral
-- Fase atual: FASE 4/4 (Autenticação, Governança e Refinamento Final)
-- Saude do projeto: Verde (Sistema com login real e controle de acesso operando)
-- Risco principal no momento: Nenhum; foco em migração de dados reais e testes de carga.
+- Fase atual: EVOLUÇÃO B2B CONCLUÍDA & MÓDULO DE PARCEIROS INTEGRADO
+- Saúde do projeto: Verde (Tudo rodando localmente de forma excelente)
+- Risco principal no momento: Calibrar os seletores de scraping no n8n para parceiros específicos.
 
-## O que foi concluido hoje (2026-03-18)
-- **Autenticação e Segurança (JWT)**:
-  - Implementação de Login real com persistência de sessão.
-  - Criptografia de senhas com `bcrypt` no banco de dados.
-  - Proteção de rotas (Garda de autenticação) para todo o dashboard.
-- **Controle de Acesso por Níveis (RBAC)**:
-  - Definidos níveis: **Administrador** (Total), **Auxiliar** (Operacional) e **Auditor** (Consulta).
-  - Menu lateral dinâmico que se adapta conforme a permissão do usuário.
-- **Gestão de Equipe**:
-  - Nova tela de Gerenciamento de Membros (CRUD completo de usuários).
-  - Atribuição de "Responsável" na cotação vinda dinamicamente da base de usuários.
-- **Refinamento de UX/UI**:
-  - Nova tela de Login com design premium e animações.
-  - Sincronização de todos os ícones e rótulos de status com os novos níveis de acesso.
-- **Configuração e Deploy**:
-  - Script de inicialização automática de Super Administrador (`create-superadmin.ts`).
-  - Sincronização total das interfaces de resultados (tabelas e filtros) com as novas tipagens da API.
+## O que foi concluído hoje (2026-05-01)
+- **Correção de Banco e Encoding (Normalização UTF-8)**:
+  - Corrigido o encoding de todas as 14 categorias e nomes de parceiros via script SQL direto no Postgres (`docker cp` + `psql -f`), garantindo compatibilidade 100% com caracteres especiais do Brasil.
+- **Módulo de Parceiros (Suppliers)**:
+  - Criação da tabela `suppliers`, criação do repositório, rotas da API e interface CRUD completa.
+  - Implementada a busca direta e síncrona via endpoint `/api/suppliers/search` que se comunica diretamente com o webhook do n8n sem depender de filas (espera até 25 segundos pela resposta).
+  - Atualizado o componente `ResultsTable.tsx` e a tela de cotações para permitir a busca em parceiros selecionados.
+  - Criado o plano e arquitetura de integração do n8n para realizar scraping dinâmico e normalização de dados.
 
 ## Em andamento
-- Preparação para exportação avançada em múltiplos formatos (Excel/PDF consolidado).
-- Testes de concorrência com múltiplos usuários operando simultaneamente.
+- Homologação de Qualidade (QA) com a equipe usando o novo `QA_CHECKLIST.md`.
+- Construção de novos fluxos de roteamento no n8n para parceiros de nicho da Inforé.
 
-## Pendencias criticas
-- [x] Implementar controle de acesso/autenticação (concluído).
-- [x] Criar tela de login e gestão de usuários (concluído).
-- [x] Vincular "Responsável pela Cotação" a usuários reais do sistema (concluído).
+## Pendências críticas
+- [ ] Planejar deploy da stack completa (Frontend, Backend Next, Worker, Postgres, Redis) na VPS de produção.
 
-## Proximos passos (ordem sugerida)
-1. Implementar funcionalidade de "Reset de Senha" para administradores.
-2. Adicionar logs de auditoria detalhados (quem aprovou o quê e quando).
-3. Testar o fluxo de cotações em massa com usuários de nível "Auxiliar".
+## Próximos passos (ordem sugerida)
+1. Concluir os testes do `QA_CHECKLIST.md` rodando listas de compras reais.
+2. Configurar o n8n com o novo nó Code que decide a API de scraping e roteia o payload dinamicamente.
+3. Migrar os recursos para uma VPS (DigitalOcean / Hetzner) com Docker.
 
-## Checklist por fase (resumo)
-- [x] FASE 0 - Planejamento e definicao do escopo
-- [x] FASE 1 - Base backend + banco
-- [x] FASE 1-Frontend - Base Next.js + design system
-- [x] FASE 2 - Cache + integracao API externa
-- [x] FASE 3 - Frontend core + integracao (Concluída)
-- [x] FASE 4 - Autenticação, Equipe e Governança (Concluída)
+## Checklist por fase (Evolução B2B)
+- [x] FASE 1 - Normalização de Nomes e Histórico de Preços
+- [x] FASE 2 - Motor de Score e Auto-seleção de Compras
+- [x] FASE 3 - Processamento Paralelo de Filas Assíncronas (BullMQ)
+- [x] FASE 4 - Central de Alertas e Despacho via Webhooks (n8n)
+- [x] FASE 5 - Motor Multi-Provedores (Registro Dinâmico)
+- [x] FASE 6 - Exclusão de Ruído e Matching Avançado de Produtos
+- [x] EXTRA - Módulo Completo de Parceiros com Busca Síncrona
 
-## Registro rapido diario
-### 2026-03-18
-- Feito:
-  - Transformado o MVP em um produto multiusuário com segurança JWT.
-  - Criada interface de gestão de equipe com 3 níveis de permissão.
-  - Corrigidos lints e inconsistências nas rotas de cotação após refatoração da API.
-  - Criado usuário Super Admin via script root.
-  - Commits e Push realizados para o repositório principal.
-- Proximo dia:
-  - Iniciar testes operacionais com dados reais de clientes e auditoria.
+## Registro rápido diário
+### 2026-05-16
+- **Portal Cliente B2B**: Implementada migration incremental `016_b2b_client_portal.sql`, roles `client_admin`/`client_buyer`, JWT com `client_id`, rotas protegidas por escopo de cliente e area `/client`.
+- **Entrada B2B**: Adicionada criação de cotação pelo cliente com entrada manual, colar Excel e upload CSV/TXT com campos opcionais de categoria, grade e preço alvo.
+- **n8n**: Adicionados endpoints `/api/n8n/pending-notifications` e `/api/n8n/mark-notified`; envio manual passa a marcar notificação como enviada quando aplicável.
+- **Segurança/QA**: Endurecido `/api/users/init`; criado `npm run qa:b2b` para validar isolamento multitenant, permissões de categorias e bloqueio de rotas internas para usuários externos.
+- **Validação**: Builds de frontend/backend passaram; QA B2B automatizado passou localmente.
 
-## Como usar este arquivo
-- Atualizar no inicio do dia: "Fase atual" e "Pendencias criticas".
-- Atualizar no fim do dia: bloco "Registro rapido diario".
-- Marcar checklist por fase conforme entregas reais.
+### 2026-05-01
+- **Manhã**: Implementado plano mestre de evolução B2B. Finalizado `AlertDropdown` na UI, fix da porta do Redis no Worker e inserido o filtro Jaccard.
+- **Noite**: Correção completa de UTF-8 do banco de dados, criação de CRUD de parceiros e lançamento do fluxo de busca direta e síncrona com n8n Webhook.
