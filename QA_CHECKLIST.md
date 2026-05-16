@@ -44,6 +44,23 @@ Utilize este documento para validar se as implementações das Fases 1 a 6 estã
   - *Ação:* Configurar um link de teste em `N8N_WEBHOOK_URL` e rodar uma busca que dispare um evento `price_opportunity` ou `list_completed`.
   - *Esperado:* O n8n receberá instantaneamente um POST (payload JSON) detalhado com o evento, permitindo montar automações de envio de WhatsApp/E-mail.
 
+## 🧾 Portal do Cliente B2B
+- [x] **Teste automatizado local de isolamento multitenant:**
+  - *Ação:* Rodar `npm run qa:b2b` dentro de `frontend`, com o Next em `http://localhost:3000` e PostgreSQL local ativo.
+  - *Esperado:* Usuários `client_admin` e `client_buyer` autenticam, listam apenas cotações do próprio `client_id`, não acessam cotação de outro cliente por URL direta e não conseguem forjar `clientId` no payload.
+
+- [x] **Teste de permissões de categorias:**
+  - *Ação:* Rodar `npm run qa:b2b`.
+  - *Esperado:* `client_admin` lista/cria categorias do próprio cliente; `client_buyer` lista, mas não cria categorias.
+
+- [x] **Teste de bloqueio de rotas internas para cliente externo:**
+  - *Ação:* Rodar `npm run qa:b2b`.
+  - *Esperado:* Cliente externo recebe `403` em `/api/clients` e `/api/n8n/pending-notifications`.
+
+- [ ] **Teste visual manual do portal:**
+  - *Ação:* Entrar com usuário `client_admin`, acessar `/client/dashboard`, criar cotação via entrada manual, colar Excel e upload CSV/TXT.
+  - *Esperado:* UI responsiva, sem vazamento de dados internos, e itens com categoria/grade/preço alvo aparecem corretamente no preview e detalhes.
+
 ## 🔌 Fase 5: Motor Multi-Provedor (Registry)
 - [ ] **Teste de Fallback/Recuperação de Desastre:**
   - *Ação:* Invalidar a chave `SERPER_API_KEY` temporariamente e realizar uma busca.
@@ -56,3 +73,10 @@ Utilize este documento para validar se as implementações das Fases 1 a 6 estã
 
 ---
 **Observação:** O comando oficial para iniciar todo o ambiente integrado localmente é `npm run dev` (que inicializa Frontend, Backend e o Worker simultaneamente). Certifique-se de que o **Docker (Postgres + Redis)** esteja operante.
+
+Para o QA automatizado do Portal do Cliente B2B, mantenha o frontend rodando e execute:
+
+```powershell
+cd frontend
+npm run qa:b2b
+```
